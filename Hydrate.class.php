@@ -4,6 +4,10 @@ class Hydrate_error
 {
     static function show($method, $message)
     {
+        // Reset CI AR to a clear state, in case we messed it up and some page exit handlers want to use it
+        $CI =& get_instance();
+        $CI->db->_reset_select();
+        
         $error =& load_class('Exceptions');
 		echo $error->show_error("{$method}() error:", $message, 'error_db');
 		exit;
@@ -206,6 +210,16 @@ class Hydrate_schema
             $schema[$table_k] = $table;
         }
         
+        // Now check if relation names do not conflict with field names in all tables
+        foreach ($schema as $table_k => $table)
+        {
+            foreach ($table["columns"] as $columnName => $column)
+                foreach ($table["relations"] as $relationName => $relation)
+                    if ($columnName == $relationName)
+                        Hydrate_error::show( __METHOD__,
+                                            "table '{$table_k}' contains both a field and a relation, named '{$columnName}'");
+        }
+        
         return $schema;
     }
     
@@ -228,6 +242,8 @@ class Hydrate_query
                         //      prefix => prefix used for the table
                         // )
     var $relations;     // Relations hierarchy we want to get
+    
+    var $prefixes;      // Prefixes used, while building the hydrate query
     
     // Low level (CI AR) stuff:
     // This gets formed by both Hydrate and user calls.
@@ -267,11 +283,11 @@ class Hydrate_query
         
         $hq->count = FALSE;
         
-        $prefixes       = Array();
+        $hq->prefixes       = Array();
         
         // Table to select from
-        $prefix         = Hydrate_query::_getNextPrefix($prefixes);
-        $prefixes[]     = $prefix;
+        $prefix         = Hydrate_query::_getNextPrefix($hq->prefixes);
+        $hq->prefixes[] = $prefix;
         $hq->table      = Array(
             "name"          => $table,
             "prefix"        => $prefix,
@@ -285,7 +301,7 @@ class Hydrate_query
         if (! is_array($relations))
             $relations = Array($relations);
         
-        $hq->relations = Hydrate_query::buildRelations($schema, $table, $relations, $prefixes);
+        $hq->relations = Hydrate_query::buildRelations($schema, $table, $relations, $hq->prefixes);
         
         $hq->select = Array();
         $hq->join = Array();
@@ -386,6 +402,100 @@ class Hydrate
         return "{$table["prefix"]}.{$field}";
     }
     
+    function _getHqTable($tableName)
+    {
+        $schema = $this->getSchema();
+        $hq =& $this->hq;
+        
+        $relations = explode(".", $tableName);
+        
+        $queryTableName = $hq->table["name"];
+        if (empty($tableName) OR count($relations) == 0)
+            $queryTable =& $hq->table;
+        else
+        {
+            $queryTable = Array(
+                "children" => &$hq->relations,
+            );
+            foreach ($relations as $relName)
+                if (!isset($queryTable["children"][$relName]))
+                    Hydrate_error::show( __METHOD__, "current hydration query has no relation '{$relName}' "
+                        . "from relation '" . (!empty($queryTable["name"]) ? $queryTable["name"] : "")
+                        . "' (which is table '{$queryTableName}')");
+                else
+                {
+                    // _buildRelations will throw an error incase invalid relations are specified, while building
+                    // a hydrate query, so this is unnecessary (and never called)
+                    // if (!isset($schema[$queryTableName]["relations"][$relName]))
+                        // Hydrate_error::show( __METHOD__,
+                          // "relation '{$queryTable["name"]}'(which is table '{$queryTableName}'), "
+                        // . "has no relation '{$relname}' defined in the schema file. "
+                        // . "The relation is referenced in where clause 'where({$originalKey}, {$originalValue})'");
+                        
+                    $queryTableName = $schema[$queryTableName]["relations"][$relName]["table"];
+                    $queryTable =& $queryTable["children"][$relName];
+                }
+        }
+        
+        return Array(
+            "tableName" => $queryTableName,
+            "hqTable" => &$queryTable,
+        );
+    }
+    
+    // This is used to transform field names from the format "relation1.relation2.field_name"
+    // into a field name, which ca be used in the query (from Hydrate->getFieldName())
+    // NOTE: right now, this function preserves backwards-compatibility, and checks for the possibility
+    // of the field name already being passed through Hydrate->getFieldName() and leaves it unmodified,
+    // if this is the case.
+    // NOTE: that, this backwards compatibility introduces a possible problem: if there would be a relation
+    // in the database with a name which is used as a prefix in queries, then if you pass in a field name
+    // in the format "relation.field" - then this relation's name would remain unmodified, which would cause
+    // either a database error or wrong results.
+    // NOTE: that, we can check for this possibility in the prefix generation function - always go through
+    // all table names and all relation names, and if one of them is equal to the new prefix name - throw an error.
+    // NOTE: that once this backwards compatibility is removed (2.0) - this will no longer be an issue.
+    function _getFieldName($originalKey)
+    {
+        $schema = $this->getSchema();
+        $hq = $this->hq;
+        
+        $relationsArr = explode(".", $originalKey);
+        
+        $fieldWithOperator = array_pop($relationsArr);
+        $relations = $relationsArr;
+        $fieldArr = explode(" ", trim($fieldWithOperator));
+        $fieldName = array_shift($fieldArr);
+        $afterField = FALSE;
+        if (count($fieldArr) > 0)
+            $afterField = join(" ", $fieldArr);
+        
+        // DEPRECATED: This is for backwards compatibility: try to see if the fieldname passed is already
+        // passed through Hydrate->getFieldName()
+        $passedThroughGetFieldName = FALSE;
+        if (count($relations) == 1)
+            foreach ($hq->prefixes as $prefix)
+                if ($prefix == $relations[0])
+                    return $originalKey;
+        
+        $hqTable = $this->_getHqTable(join(".", $relations));
+        
+        $hydratedFieldName = FALSE;
+        if (isset($schema[$hqTable["tableName"]]["columns"][$fieldName]))
+            $hydratedFieldName = $this->getFieldName($hqTable["hqTable"], $fieldName);
+        else
+        if (isset($hqTable["hqTable"]["fields"][$fieldName]))
+            $hydratedFieldName = $hqTable["hqTable"]["fields"][$fieldName];
+        else
+            Hydrate_error::show( __METHOD__, "could not find field '{$fieldName}' in table '{$hqTable["tableName"]}', "
+                . "which is referenced in where clause key '{$originalKey}'");
+        
+        if ($afterField === FALSE)
+            return $hydratedFieldName;
+        else
+            return "{$hydratedFieldName} {$afterField}";
+    }
+    
     
     // Starts a new Hydrate query
     function start($table, $relations = Array(), $countQuery = FALSE)
@@ -405,6 +515,26 @@ class Hydrate
         
         $CI =& get_instance();
         $this->db = $CI->db;
+        
+        // $this for chaining
+        return $this;
+    }
+    
+    function addField($intoTable, $field, $fieldAlias)
+    {
+        $hqTable =& $this->_getHqTable($intoTable);
+        $fieldName = $this->_getFieldName($field, $fieldAlias);
+        $hqTable["hqTable"]["fields"][$fieldAlias] = $fieldName;
+        
+        // $this for chaining
+        return $this;
+    }
+    
+    // Bypasses field existence checking - useful for adding fields that call functions for example.
+    function addCustomField($intoTable, $field, $fieldAlias)
+    {
+        $hqTable =& $this->_getHqTable($intoTable);
+        $hqTable["hqTable"]["fields"][$fieldAlias] = $field;
         
         // $this for chaining
         return $this;
@@ -487,7 +617,7 @@ class Hydrate
                     foreach ($ids as $id)
                         $primaryIn[] = $id["{$hq->table["prefix"]}_{$table["primary"][0]}"];
                     $primaryInStr = join(",", $primaryIn);
-                    $hq->where[] = "{$hq->table["prefix"]}.{$table["primary"][0]} IN ({$primaryInStr})";
+                    $hq->where[] = Array("{$hq->table["prefix"]}.{$table["primary"][0]} IN ({$primaryInStr})");
                 }
             }
         }
@@ -509,10 +639,21 @@ class Hydrate
             ->from("{$hq->table["name"]} AS {$hq->table["prefix"]}");
         foreach ($hq->join as $join)
             call_user_func_array(Array($this->db, "join"), $join);
+        // foreach ($hq->where as $where)
+            // call_user_func_array(Array($this->db, "where"), Array($this->_getWhereKey($where[0]), $where[1]));
+        // foreach ($hq->where_in as $where_in)
+            // call_user_func_array(Array($this->db, "where_in"), Array($this->_getWhereKey($where_in[0]), $where_in[1]));
+        
         foreach ($hq->where as $where)
-            call_user_func_array(Array($this->db, "where"), $where);
+            if (is_array($where) AND count($where) > 1)
+                call_user_func_array(Array($this->db, "where"), Array($this->_getFieldName($where[0]), $where[1]));
+            else
+                call_user_func_array(Array($this->db, "where"), Array($this->_getFieldName($where[0])));
         foreach ($hq->where_in as $where_in)
-            call_user_func_array(Array($this->db, "where_in"), $where_in);
+            if (is_array($where_in) AND count($where_in) > 1)
+                call_user_func_array(Array($this->db, "where_in"), Array($this->_getFieldName($where_in[0]), $where_in[1]));
+            else
+                call_user_func_array(Array($this->db, "where_in"), Array($this->_getFieldName($where_in[0])));
         if ($hq->order_by)
             call_user_func_array(Array($this->db, "order_by"), $hq->order_by);
     }
@@ -542,13 +683,17 @@ class Hydrate
         else
         {
             foreach ($localTable["columns"] as $name => $v)
-                $hq->select[] = "{$tablePrefix}.{$name} AS {$tablePrefix}_{$name}";
+            {
+                if (isset($v["type"]) AND $v["type"] == "datetime")
+                    $hq->select[] = "Convert(char(19),{$tablePrefix}.{$name},120) AS {$tablePrefix}_{$name}";
+                else
+                    $hq->select[] = "{$tablePrefix}.{$name} AS {$tablePrefix}_{$name}";
+            }
             
-            // Additional, user-specified fields
+            // Additional, user-specified custom fields
             foreach ($hq->table["fields"] as $alias => $field)
                 $hq->select[] = "{$field} AS {$tablePrefix}_{$alias}";
         }
-            
         
         // Adding relations
         $hq->join = Array();
@@ -587,18 +732,31 @@ class Hydrate
                 foreach ($rel["fields"] as $alias => $field)
                     $hq->select[] = "{$field} AS {$relationPrefix}_{$alias}";
             }
-                
             
             $query = "";
             
             foreach ($rel["query"] as $k => $v)
-                if (!preg_match ("/ !\=$/", $k) && !preg_match ("/ \<$/", $k) && !preg_match ("/ \<\=$/", $k)
-                    && !preg_match ("/ \>$/", $k) && !preg_match ("/ \>\=$/", $k) && !preg_match ("/ \=$/", $k))
+            {
+                $fieldName = $this->_getFieldName($k);
+                $fieldNameArr = explode(" ", $fieldName);
+                $fieldNameParts = 0;
+                foreach ($fieldNameArr as $v2)
+                {
+                    $v2 = trim($v2);
+                    if (!empty($v2))
+                        $fieldNameParts++;
+                }
+                
+                // if (!preg_match ("/ !\=$/", $k) && !preg_match ("/ \<$/", $k) && !preg_match ("/ \<\=$/", $k)
+                    // && !preg_match ("/ \>$/", $k) && !preg_match ("/ \>\=$/", $k) && !preg_match ("/ \=$/", $k))
+                if ($fieldNameParts == 1)
                 {
                     if (is_array($v))
-                        $query .= " AND {$k} IN (".join(",", $v).")";
+                        $query .= " AND {$fieldName} IN (".join(",", $v).")";
+                    else if ($v === NULL)
+                        $query .= " AND {$fieldName} IS NULL";
                     else
-                        $query .= " AND {$k}={$v}";
+                        $query .= " AND {$fieldName}=" . $this->db->escape($v);
                 }
                 else
                 {
@@ -606,9 +764,9 @@ class Hydrate
                         Hydrate_error::show( __METHOD__,
                                             "trying to pass an array of values to an non-equal relation query clause {$k} ");
                     
-                    $query .= " AND {$k} {$v}";
+                    $query .= " AND {$fieldName} {$v}";
                 }
-                    
+            }
             
             // If many-to-many relation
             if (Hydrate_schema::isManyToMany($relation))
@@ -657,14 +815,25 @@ class Hydrate
     function where()
     {
         $args = func_get_args();
-        if (is_array($args[1]))
+        if (is_array($args[0]))
         {
-            $this->hq->where_in[] = $args;
-            if (count($args[1]) == 0)
-                $this->hq->returnNothing = TRUE;
+            foreach ($args[0] as $k => $v)
+                $this->where($k, $v);
         }
         else
-            $this->hq->where[] = $args;
+        {
+            if (count($args) > 1 AND is_array($args[1]))
+            {
+                $this->hq->where_in[] = $args;
+                if (count($args[1]) == 0)
+                    $this->hq->returnNothing = TRUE;
+            }
+            else
+                $this->hq->where[] = $args; 
+        }
+        
+        // $this for chaining
+        return $this;
     }
     
     // function where_in()
@@ -676,7 +845,12 @@ class Hydrate
     function order_by()
     {
         $args = func_get_args();
+        $args[0] = $this->_getFieldName($args[0]);
+        
         $this->hq->order_by = $args;
+        
+        // $this for chaining
+        return $this;
     }
     
     function limit()
@@ -686,6 +860,9 @@ class Hydrate
         $limit = $args[0];
         if ($limit >= 0)
             $this->hq->limit = $args;
+        
+        // $this for chaining
+        return $this;
     }
     
     // Directly selects the first row from the result set, bypassing hydration.
