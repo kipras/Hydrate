@@ -1,5 +1,11 @@
 <?php
 
+/*
+ * Version log:
+ *
+ * 1.2: order_by() can now be called multiple times, to order by several fields
+ */
+
 class Hydrate_error
 {
     static function show($method, $message)
@@ -307,7 +313,7 @@ class Hydrate_query
         $hq->join = Array();
         $hq->where = Array();
         $hq->where_in = Array();
-        $hq->order_by = FALSE;
+        $hq->order_by = Array();
         $hq->limit = FALSE;
         $hq->returnNothing = FALSE;
         
@@ -601,7 +607,7 @@ class Hydrate
                 $this->_setQueryPartsInner();
                 
                 $this->db
-                    ->group_by(Array("{$hq->table["prefix"]}.{$table["primary"][0]}", $hq->order_by[0]))
+                    ->group_by(Array("{$hq->table["prefix"]}.{$table["primary"][0]}", $hq->order_by[0][0]))
                     ->limit($limit, $offset)
                 ;
                 
@@ -654,8 +660,8 @@ class Hydrate
                 call_user_func_array(Array($this->db, "where_in"), Array($this->_getFieldName($where_in[0]), $where_in[1]));
             else
                 call_user_func_array(Array($this->db, "where_in"), Array($this->_getFieldName($where_in[0])));
-        if ($hq->order_by)
-            call_user_func_array(Array($this->db, "order_by"), $hq->order_by);
+        foreach ($hq->order_by as $order_by)
+            call_user_func_array(Array($this->db, "order_by"), $order_by);
     }
     
     // Forms the actual query from $this->hq parameters.
@@ -847,7 +853,7 @@ class Hydrate
         $args = func_get_args();
         $args[0] = $this->_getFieldName($args[0]);
         
-        $this->hq->order_by = $args;
+        $this->hq->order_by[] = $args; 
         
         // $this for chaining
         return $this;
