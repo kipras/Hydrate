@@ -1,1 +1,5 @@
+1.3   - Completely independent of Code Igniter (older versions could only be used in CI projects)
+        - Now you can pass the CI AR instance to Hydrate directly.
+        - You can also put the schema in the current.schema file directly, if you want (as opposed to
+            only putting a pointer to the current schema file there. Putting a pointer also works.
 1.2   - order_by() can now be called multiple times, to order by several fields
