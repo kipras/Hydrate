@@ -1,0 +1,11 @@
+- Connect Ucache (with memcached backend only) to it.
+    - Also, create cache invalidations, when write queries are run through Hydrate.
+        Although should probably only include write queries run through the AR api, not direct queries
+        (parsing them is eughh...)
+    - But, we should also do these cache invalidations in a way, that we actually would have invalidation
+        functions, that we could call from the outside if necessary (say if we are updating something, but we
+        can't go through Hydrate, we should still be able to invalidate it's corresponding caches).
+    - But make sure that cache invalidations are selective, i.e. if we update one item in a table, we don't want
+        to invalidate all caches that have anything to do with that table.
+    
+    Anyway, this will be difficult... (But would be really awesome if we had this)

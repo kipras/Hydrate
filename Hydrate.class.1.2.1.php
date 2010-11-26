@@ -3,200 +3,39 @@
 /*
  * Version log:
  *
- * 1.4:     - Same chage as 1.2.1 but for 1.3
- * 1.3:     - Completely independant of Code Igniter (older versions could only be used in CI projects)
-            - Now you can pass the CI AR instance to Hydrate directly.
-            - You can also put the schema in the current.schema file directly, if you want (as opposed to
- *              only putting a pointer to the current schema file there. Putting a pointer also works.
  * 1.2.1    - Allows to pass Hydrate->where() raw SQL queries in parentheses, i.e. Hydrate->where("(x AND y)")
  * 1.2:     - order_by() can now be called multiple times, to order by several fields
  */
 
 class Hydrate_error
 {
-    static $ob_level = FALSE;
-    
-    function Hydrate_error()
-    {
-        if (self::$ob_level === FALSE)
-            self::$ob_level = ob_get_level();
-        
-        // Note:  Do not log messages from this constructor. 
-    }
-    
     static function show($method, $message)
     {
         // Reset CI AR to a clear state, in case we messed it up and some page exit handlers want to use it
-        if (Hydrate::$db)
-            Hydrate::$db->_reset_select();
+        $CI =& get_instance();
+        $CI->db->_reset_select();
         
-        self::set_status_header(500);
-		
-		$heading = "{$method}() error:";
-        $message = '<p>'.$message.'</p>';
-
-		if (ob_get_level() > self::$ob_level + 1)
-		{
-			ob_end_flush();	
-		}
-		ob_start();
-		
-        
-        
-        echo 
-'<html>
-<head>
-<title>Error</title>
-<style type="text/css">
-
-body {
-background-color:	#fff;
-margin:				40px;
-font-family:		Lucida Grande, Verdana, Sans-serif;
-font-size:			12px;
-color:				#000;
-}
-
-#content  {
-border:				#999 1px solid;
-background-color:	#fff;
-padding:			20px 20px 12px 20px;
-}
-
-h1 {
-font-weight:		normal;
-font-size:			14px;
-color:				#990000;
-margin: 			0 0 4px 0;
-}
-</style>
-</head>
-<body>
-	<div id="content">
-		<h1>' . $heading . '</h1>
-		' . $message . '
-	</div>
-</body>
-</html>';
-        
-		$buffer = ob_get_contents();
-		ob_end_clean();
-        
-        echo $buffer; 
-        exit;
-    }
-    
-    /**
-     * Set HTTP Status Header
-     *
-     * @access	public
-     * @param	int 	the status code
-     * @param	string	
-     * @return	void
-     */
-    static function set_status_header($code = 200, $text = '')
-    {
-        $stati = array(
-                            200	=> 'OK',
-                            201	=> 'Created',
-                            202	=> 'Accepted',
-                            203	=> 'Non-Authoritative Information',
-                            204	=> 'No Content',
-                            205	=> 'Reset Content',
-                            206	=> 'Partial Content',
-
-                            300	=> 'Multiple Choices',
-                            301	=> 'Moved Permanently',
-                            302	=> 'Found',
-                            304	=> 'Not Modified',
-                            305	=> 'Use Proxy',
-                            307	=> 'Temporary Redirect',
-
-                            400	=> 'Bad Request',
-                            401	=> 'Unauthorized',
-                            403	=> 'Forbidden',
-                            404	=> 'Not Found',
-                            405	=> 'Method Not Allowed',
-                            406	=> 'Not Acceptable',
-                            407	=> 'Proxy Authentication Required',
-                            408	=> 'Request Timeout',
-                            409	=> 'Conflict',
-                            410	=> 'Gone',
-                            411	=> 'Length Required',
-                            412	=> 'Precondition Failed',
-                            413	=> 'Request Entity Too Large',
-                            414	=> 'Request-URI Too Long',
-                            415	=> 'Unsupported Media Type',
-                            416	=> 'Requested Range Not Satisfiable',
-                            417	=> 'Expectation Failed',
-
-                            500	=> 'Internal Server Error',
-                            501	=> 'Not Implemented',
-                            502	=> 'Bad Gateway',
-                            503	=> 'Service Unavailable',
-                            504	=> 'Gateway Timeout',
-                            505	=> 'HTTP Version Not Supported'
-                        );
-
-        if ($code == '' OR ! is_numeric($code))
-        {
-            show_error('Status codes must be numeric', 500);
-        }
-
-        if (isset($stati[$code]) AND $text == '')
-        {				
-            $text = $stati[$code];
-        }
-        
-        if ($text == '')
-        {
-            show_error('No status text available.  Please check your status code number or supply your own message text.', 500);
-        }
-        
-        $server_protocol = (isset($_SERVER['SERVER_PROTOCOL'])) ? $_SERVER['SERVER_PROTOCOL'] : FALSE;
-
-        if (substr(php_sapi_name(), 0, 3) == 'cgi')
-        {
-            header("Status: {$code} {$text}", TRUE);
-        }
-        elseif ($server_protocol == 'HTTP/1.1' OR $server_protocol == 'HTTP/1.0')
-        {
-            header($server_protocol." {$code} {$text}", TRUE, $code);
-        }
-        else
-        {
-            header("HTTP/1.1 {$code} {$text}", TRUE, $code);
-        }
+        $error =& load_class('Exceptions');
+		echo $error->show_error("{$method}() error:", $message, 'error_db');
+		exit;
     }
 }
 
 class Hydrate_schema
 {
-    static $schemaPath = FALSE;
-    
-    
-    function Hydrate_schema()
+    static function get()
     {
-        if (self::$schemaPath === FALSE)
-            self::$schemaPath = dirname(__FILE__) . '/schema';
-    }
-    
-    static function get($name = "current")
-    {
-        $schemaText = file_get_contents(self::$schemaPath . "/{$name}.schema");
-        if (empty($schemaText))
-            Hydrate_error::show( __METHOD__, "Could not load \"" . self::$schemaPath . "/{$name}.schema\""); 
+        $currentSchema = file_get_contents(APPPATH . "schema/current.schema");
+        if (empty($currentSchema))
+            Hydrate_error::show( __METHOD__, "Could not load \"schema/current.schema\""); 
         
-        $schema = json_decode($schemaText, TRUE);
+        $schemaJSON = file_get_contents(APPPATH . "schema/{$currentSchema}.schema");
+        if (empty($schemaJSON))
+            Hydrate_error::show(__METHOD__, "Could not load \"schema/{$currentSchema}.schema\""); 
+        
+        $schema = json_decode($schemaJSON, TRUE);
         if ($schema === NULL)
-        {
-            // Try to identify a schema file (JSON)
-            $schemaArr = explode("\n", trim($schema));
-            if (count($schemaArr) > 1)
-                Hydrate_error::show(__METHOD__, "Illegal schema file \"" . self::$schemaPath . "/{$name}.schema\" (JSON formatting error(s))"); 
-            
-            return self::get($schemaText);
-        }
+            Hydrate_error::show(__METHOD__, "Illegal schema file \"schema/{$currentSchema}.schema\" (JSON formatting error(s))"); 
         
         return self::prepare($schema);
     }
@@ -538,7 +377,7 @@ class Hydrate
     const DEBUG = FALSE;
     
     // CI AR database object
-    static $db = FALSE;
+    var $db = FALSE;
     
     // Hydrate query that we are building
     var $hq = FALSE;
@@ -547,43 +386,12 @@ class Hydrate
     
     
     
-    function Hydrate($options = Array())
-    {
-        // Initialize Hydrate_error and Hydrate_schema
-        new Hydrate_error();
-        new Hydrate_schema();
-        
-        if (isset($options["db"]))
-            self::$db = $options["db"];
-        if (isset($options["schemaPath"]))
-            Hydrate_schema::$schemaPath = $options["schemaPath"];
-    }
-    
-    // Main interface function - starts a new Hydrate query
-    function start($table, $relations = Array(), $countQuery = FALSE)
-    {
-        $this->_debug(__METHOD__);
-        
-        $this->selectFormed = FALSE;
-        
-        $schema = $this->getSchema();
-        
-        // Building $this->hq
-        $hq = Hydrate_query::build($schema, $table, $relations);
-        if ($countQuery)
-            $hq->count = TRUE;
-        
-        $this->hq = $hq;
-        
-        // $this for chaining
-        return $this;
-    }
-    
     function _debug($str)
     {
         if (self::DEBUG)
             e($str);
     }
+    
     
     static $_schema = FALSE;
     function getSchema()
@@ -669,10 +477,14 @@ class Hydrate
         if (count($fieldArr) > 0)
             $afterField = join(" ", $fieldArr);
         
+        // If we passed in a raw SQL query in parentheses ourselves - leave it as it is
+        if ($originalKey[0] == "(" AND $originalKey[strlen($originalKey) - 1] == ")")
+            return $originalKey;
+        
         // DEPRECATED: This is for backwards compatibility: try to see if the fieldname passed is already
         // passed through Hydrate->getFieldName()
         $passedThroughGetFieldName = FALSE;
-        if (count($relations) == 1)
+        if (count($relations) > 0)
             foreach ($hq->prefixes as $prefix)
                 if ($prefix == $relations[0])
                     return $originalKey;
@@ -693,6 +505,30 @@ class Hydrate
             return $hydratedFieldName;
         else
             return "{$hydratedFieldName} {$afterField}";
+    }
+    
+    
+    // Starts a new Hydrate query
+    function start($table, $relations = Array(), $countQuery = FALSE)
+    {
+        $this->_debug(__METHOD__);
+        
+        $this->selectFormed = FALSE;
+        
+        $schema = $this->getSchema();
+        
+        // Building $this->hq
+        $hq = Hydrate_query::build($schema, $table, $relations);
+        if ($countQuery)
+            $hq->count = TRUE;
+        
+        $this->hq = $hq;
+        
+        $CI =& get_instance();
+        $this->db = $CI->db;
+        
+        // $this for chaining
+        return $this;
     }
     
     function addField($intoTable, $field, $fieldAlias)
@@ -770,17 +606,17 @@ class Hydrate
                                         "trying to set a limit() clause on a table '{$hq->table["name"]}', which "
                                       . "does not have a one-field Primary Key.");
                 
-                self::$db->select("{$hq->table["prefix"]}.{$table["primary"][0]} AS {$hq->table["prefix"]}_{$table["primary"][0]}");
+                $this->db->select("{$hq->table["prefix"]}.{$table["primary"][0]} AS {$hq->table["prefix"]}_{$table["primary"][0]}");
                 
                 // Hydrate query part
                 $this->_setQueryPartsInner();
                 
-                self::$db
+                $this->db
                     ->group_by(Array("{$hq->table["prefix"]}.{$table["primary"][0]}", $hq->order_by[0][0]))
                     ->limit($limit, $offset)
                 ;
                 
-                $ids = self::$db
+                $ids = $this->db
                     ->get()
                     ->result_array()
                 ;
@@ -799,7 +635,7 @@ class Hydrate
         
         if ($hq->returnNothing === FALSE)
         {
-            self::$db->select(join(",", $hq->select));
+            $this->db->select(join(",", $hq->select));
             $this->_setQueryPartsInner();
         }
     }
@@ -810,27 +646,27 @@ class Hydrate
         
         $hq = $this->hq;
         
-        self::$db
+        $this->db
             ->from("{$hq->table["name"]} AS {$hq->table["prefix"]}");
         foreach ($hq->join as $join)
-            call_user_func_array(Array(self::$db, "join"), $join);
+            call_user_func_array(Array($this->db, "join"), $join);
         // foreach ($hq->where as $where)
-            // call_user_func_array(Array(self::$db, "where"), Array($this->_getWhereKey($where[0]), $where[1]));
+            // call_user_func_array(Array($this->db, "where"), Array($this->_getWhereKey($where[0]), $where[1]));
         // foreach ($hq->where_in as $where_in)
-            // call_user_func_array(Array(self::$db, "where_in"), Array($this->_getWhereKey($where_in[0]), $where_in[1]));
+            // call_user_func_array(Array($this->db, "where_in"), Array($this->_getWhereKey($where_in[0]), $where_in[1]));
         
         foreach ($hq->where as $where)
             if (is_array($where) AND count($where) > 1)
-                call_user_func_array(Array(self::$db, "where"), Array($this->_getFieldName($where[0]), $where[1]));
+                call_user_func_array(Array($this->db, "where"), Array($this->_getFieldName($where[0]), $where[1]));
             else
-                call_user_func_array(Array(self::$db, "where"), Array($this->_getFieldName($where[0])));
+                call_user_func_array(Array($this->db, "where"), Array($this->_getFieldName($where[0])));
         foreach ($hq->where_in as $where_in)
             if (is_array($where_in) AND count($where_in) > 1)
-                call_user_func_array(Array(self::$db, "where_in"), Array($this->_getFieldName($where_in[0]), $where_in[1]));
+                call_user_func_array(Array($this->db, "where_in"), Array($this->_getFieldName($where_in[0]), $where_in[1]));
             else
-                call_user_func_array(Array(self::$db, "where_in"), Array($this->_getFieldName($where_in[0])));
+                call_user_func_array(Array($this->db, "where_in"), Array($this->_getFieldName($where_in[0])));
         foreach ($hq->order_by as $order_by)
-            call_user_func_array(Array(self::$db, "order_by"), $order_by);
+            call_user_func_array(Array($this->db, "order_by"), $order_by);
     }
     
     // Forms the actual query from $this->hq parameters.
@@ -931,7 +767,7 @@ class Hydrate
                     else if ($v === NULL)
                         $query .= " AND {$fieldName} IS NULL";
                     else
-                        $query .= " AND {$fieldName}=" . self::$db->escape($v);
+                        $query .= " AND {$fieldName}=" . $this->db->escape($v);
                 }
                 else
                 {
@@ -1051,7 +887,7 @@ class Hydrate
             return Array();
         }
         
-        return self::$db->get()->row_array();
+        return $this->db->get()->row_array();
     }
     
     function rawVal()
@@ -1086,14 +922,7 @@ class Hydrate
         $schema = $this->getSchema();
         
         $hq             = $this->hq;
-        $result         = self::$db->get();
-        if ($result === FALSE)
-        {
-            $query = end(self::$db->queries);
-            Hydrate_error::show("DB", self::$db->_error_message() . "<br />\n<br />\nSQL:<br />\n{$query}");
-        }
-        
-        $results_array  = $result->result_array();
+        $results_array  = $this->db->get()->result_array();
         
         $hydratedArray  = Array();
         
