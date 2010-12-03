@@ -1,3 +1,6 @@
+1.7   - Now always uses Services_JSON library to parse the json file, instead of the native json_decode(),
+        because it is more error-tolerant and less restrictive than native json_decode()
+1.6   - Small fix for schema file reading
 1.5   - Same chage as 1.2.2 but for 1.4
 1.4   - Same chage as 1.2.1 but for 1.3
 1.3   - Completely independent of Code Igniter (older versions could only be used in CI projects)

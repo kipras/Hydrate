@@ -3,6 +3,9 @@
 /*
  * Version log:
  *
+ * 1.7:     - Now always uses Services_JSON library to parse the json file, instead of the native json_decode(),
+                because it is more error-tolerant and less restrictive than native json_decode()
+ * 1.6:     - Small fix for schema file reading
  * 1.5:     - Same chage as 1.2.2 but for 1.4
  * 1.4:     - Same chage as 1.2.1 but for 1.3
  * 1.3:     - Completely independant of Code Igniter (older versions could only be used in CI projects)
@@ -12,6 +15,10 @@
  * 1.2.1    - Allows to pass Hydrate->where() raw SQL queries in parentheses, i.e. Hydrate->where("(x AND y)")
  * 1.2:     - order_by() can now be called multiple times, to order by several fields
  */
+
+
+require_once dirname(__FILE__) . "/json_1_1/json/json.php";
+
 
 class Hydrate_error
 {
@@ -188,11 +195,13 @@ class Hydrate_schema
         if (empty($schemaText))
             Hydrate_error::show( __METHOD__, "Could not load \"" . self::$schemaPath . "/{$name}.schema\""); 
         
-        $schema = json_decode($schemaText, TRUE);
+        
+        $services_json = new Services_JSON(SERVICES_JSON_LOOSE_TYPE);
+        $schema = $services_json->decode($schemaText);
         if ($schema === NULL)
         {
             // Try to identify a schema file (JSON)
-            $schemaArr = explode("\n", trim($schema));
+            $schemaArr = explode("\n", trim($schemaText));
             if (count($schemaArr) > 1)
                 Hydrate_error::show(__METHOD__, "Illegal schema file \"" . self::$schemaPath . "/{$name}.schema\" (JSON formatting error(s))"); 
             
