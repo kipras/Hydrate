@@ -3,6 +3,7 @@
 /*
  * Version log:
  *
+ * 1.2.2    - Fixed an error on MS SQL, which would come up, when there is limit() and more than one order_by()
  * 1.2.1    - Allows to pass Hydrate->where() raw SQL queries in parentheses, i.e. Hydrate->where("(x AND y)")
  * 1.2:     - order_by() can now be called multiple times, to order by several fields
  */
@@ -611,10 +612,11 @@ class Hydrate
                 // Hydrate query part
                 $this->_setQueryPartsInner();
                 
-                $this->db
-                    ->group_by(Array("{$hq->table["prefix"]}.{$table["primary"][0]}", $hq->order_by[0][0]))
-                    ->limit($limit, $offset)
-                ;
+                $this->db->group_by("{$hq->table["prefix"]}.{$table["primary"][0]}");
+                foreach ($hq->order_by as $order_by)
+                    $this->db->group_by($order_by[0]);
+                
+                $this->db->limit($limit, $offset);
                 
                 $ids = $this->db
                     ->get()

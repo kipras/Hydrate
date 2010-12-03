@@ -3,6 +3,7 @@
 /*
  * Version log:
  *
+ * 1.5:     - Same chage as 1.2.2 but for 1.4
  * 1.4:     - Same chage as 1.2.1 but for 1.3
  * 1.3:     - Completely independant of Code Igniter (older versions could only be used in CI projects)
             - Now you can pass the CI AR instance to Hydrate directly.
@@ -775,10 +776,11 @@ class Hydrate
                 // Hydrate query part
                 $this->_setQueryPartsInner();
                 
-                self::$db
-                    ->group_by(Array("{$hq->table["prefix"]}.{$table["primary"][0]}", $hq->order_by[0][0]))
-                    ->limit($limit, $offset)
-                ;
+                $this->db->group_by("{$hq->table["prefix"]}.{$table["primary"][0]}");
+                foreach ($hq->order_by as $order_by)
+                    $this->db->group_by($order_by[0]);
+                
+                $this->db->limit($limit, $offset);
                 
                 $ids = self::$db
                     ->get()
