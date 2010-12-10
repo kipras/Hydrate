@@ -3,21 +3,21 @@
 /*
  * Version log:
  *
+ * 1.9:     - Small fixes and additional checks
+ * 1.8:     - Added Hydrate_query->countQuery()
  * 1.7:     - Now always uses Services_JSON library to parse the json file, instead of the native json_decode(),
                 because it is more error-tolerant and less restrictive than native json_decode()
  * 1.6:     - Small fix for schema file reading
  * 1.5:     - Same chage as 1.2.2 but for 1.4
  * 1.4:     - Same chage as 1.2.1 but for 1.3
- * 1.3:     - Completely independant of Code Igniter (older versions could only be used in CI projects)
+ * 1.3:     - Completely independent of Code Igniter (older versions could only be used in CI projects)
             - Now you can pass the CI AR instance to Hydrate directly.
             - You can also put the schema in the current.schema file directly, if you want (as opposed to
  *              only putting a pointer to the current schema file there. Putting a pointer also works.
+ * 1.2.2    - Fixed an error on MS SQL, which would come up, when there is limit() and more than one order_by()
  * 1.2.1    - Allows to pass Hydrate->where() raw SQL queries in parentheses, i.e. Hydrate->where("(x AND y)")
  * 1.2:     - order_by() can now be called multiple times, to order by several fields
  */
-
-
-require_once dirname(__FILE__) . "/json_1_1/json/json.php";
 
 
 class Hydrate_error
@@ -191,10 +191,12 @@ class Hydrate_schema
     
     static function get($name = "current")
     {
+        if (! class_exists('Services_JSON'))
+            Hydrate_error::show( __METHOD__, "You must load the Services_JSON class, before using Hydrate"); 
+        
         $schemaText = file_get_contents(self::$schemaPath . "/{$name}.schema");
         if (empty($schemaText))
-            Hydrate_error::show( __METHOD__, "Could not load \"" . self::$schemaPath . "/{$name}.schema\""); 
-        
+            Hydrate_error::show( __METHOD__, "Could not load \"" . self::$schemaPath . "/{$name}.schema\"");
         
         $services_json = new Services_JSON(SERVICES_JSON_LOOSE_TYPE);
         $schema = $services_json->decode($schemaText);
@@ -440,6 +442,15 @@ class Hydrate_query
     
     
     
+    // --------------------------- QUERY PARAMETERS ---------------------------
+    
+    function countQuery($count)
+    {
+        $this->count = $count;
+    }
+    
+    // --------------------------- QUERY FUNCTIONS ---------------------------
+    
     function getRelations()
     {
         return $this->relations;
@@ -573,6 +584,10 @@ class Hydrate
     function start($table, $relations = Array(), $countQuery = FALSE)
     {
         $this->_debug(__METHOD__);
+        
+        if (self::$db === FALSE)
+            Hydrate_error::show( __METHOD__,
+                                "Please initialize Hydrate() with the \"db\" parameter, before using Hydrate");
         
         $this->selectFormed = FALSE;
         
@@ -785,11 +800,11 @@ class Hydrate
                 // Hydrate query part
                 $this->_setQueryPartsInner();
                 
-                $this->db->group_by("{$hq->table["prefix"]}.{$table["primary"][0]}");
+                self::$db->group_by("{$hq->table["prefix"]}.{$table["primary"][0]}");
                 foreach ($hq->order_by as $order_by)
-                    $this->db->group_by($order_by[0]);
+                    self::$db->group_by($order_by[0]);
                 
-                $this->db->limit($limit, $offset);
+                self::$db->limit($limit, $offset);
                 
                 $ids = self::$db
                     ->get()

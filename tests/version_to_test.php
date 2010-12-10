@@ -1,0 +1,1 @@
+<?php// Hydrate version to test (Hydrate.class.php always points to the latest version)require_once(dirname(__FILE__) . '/../Hydrate.class.php');

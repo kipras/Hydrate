@@ -36,7 +36,7 @@ class TestEnvironment extends TestEnvironmentBase
         
         // ----------------- Index.php -----------------
         error_reporting(E_ALL);
-        $system_folder = "system";
+        $system_folder = dirname(__FILE__) . "/../system";
         $application_folder = "../app";
         
         if (strpos($system_folder, '/') === FALSE)
@@ -92,17 +92,31 @@ class TestEnvironment extends TestEnvironmentBase
         // Load the base controller class
         load_class('Controller', FALSE);
         
-        require_once dirname(__FILE__) . "/test_controller.php";
-        $test_controller = new Test_controller();
+        // Create controller
+        require_once APPPATH . "controllers/index.php";
+        $test_controller = new Index_controller();
+        
+        // Initialize controller
+        $test_controller =& get_instance();
         $test_controller->load->database();
         
-        // Load everything we may need
-        $test_controller->load->model(Array(
-            "block", "campaigns", "error", "faq", "menu", "objects", "users", "balance"));
-        $test_controller->load->library(Array(
-            "hydrate"));
+        // Initialize Hydrate
+        $test_controller->hydrate = new Hydrate(Array(
+            'db' => $test_controller->db,
+            'schemaPath' => dirname(__FILE__) . '/../app/schema',
+        ));
         
-        $test_controller->testMethod();
+        // $test_controller->load->database();
+        
+        // // Load everything we may need
+        // $test_controller->load->model(Array(
+            // "block", "campaigns", "error", "faq", "menu", "objects", "users", "balance"));
+        // $test_controller->load->library(Array(
+            // "hydrate", "session"));
+        
+        // $test_controller->session->sess_use_database = FALSE;
+        
+        // $test_controller->testMethod();
     }
     
     function sandboxStartCustom()
@@ -120,7 +134,7 @@ class TestEnvironment extends TestEnvironmentBase
     function getTestDBDateTime()
     {
         if (self::$_datetime === FALSE)
-            self::$_datetime = date("M j Y  g:iA");
+            self::$_datetime = date("Y-m-d H:i:s");
         
         return self::$_datetime;
     }
@@ -130,8 +144,8 @@ class TestEnvironment extends TestEnvironmentBase
     {
         if (self::$_testDB === FALSE)
         {
-            require_once APPPATH . "models/Users.php";
-            require_once APPPATH . "models/Campaigns.php";
+            // require_once APPPATH . "models/users.php";
+            // require_once APPPATH . "models/campaigns.php";
             
             $created = $this->getTestDBDateTime();
             
@@ -139,57 +153,61 @@ class TestEnvironment extends TestEnvironmentBase
                 "users" => Array(
                     Array(
                         "__name" => "client1",
-                        "id" => 70,
+                        "id" => "70",
+                        "name" => "Test client user",
                         "username" => "test_user@test.lt",
                         "email" => "test_user@test.lt",
-                        "emails_messages" => "",
-                        "messages_low_funds" => 0,
-                        "messages_out_of_funds" => 0,
-                        "messages_accepted_campaigns" => 0,
-                        "messages_accepted_payments" => 0,
-                        "messages_new_features" => 0,
-                        "messages_new_bills" => 0,
-                        "type" => Users::USER_TYPE_CLIENT,
+                        "emails_messages" => " ",
+                        "messages_low_funds" => "0",
+                        "messages_out_of_funds" => "0",
+                        "messages_accepted_campaigns" => "0",
+                        "messages_accepted_payments" => "0",
+                        "messages_new_features" => "0",
+                        "messages_new_bills" => "0",
+                        "type" => "1",
                     ),
                     Array(
                         "__name" => "object1",
-                        "id" => 71,
+                        "id" => "71",
+                        "name" => "Test object user",
                         "username" => "test_object@test.lt",
                         "email" => "test_object@test.lt",
-                        "emails_messages" => "",
-                        "messages_low_funds" => 0,
-                        "messages_out_of_funds" => 0,
-                        "messages_accepted_campaigns" => 0,
-                        "messages_accepted_payments" => 0,
-                        "messages_new_features" => 0,
-                        "messages_new_bills" => 0,
-                        "type" => Users::USER_TYPE_OBJECT,
+                        "emails_messages" => " ",
+                        "messages_low_funds" => "0",
+                        "messages_out_of_funds" => "0",
+                        "messages_accepted_campaigns" => "0",
+                        "messages_accepted_payments" => "0",
+                        "messages_new_features" => "0",
+                        "messages_new_bills" => "0",
+                        "type" => "2",
                     ),
                     Array(
                         "__name" => "admin1",
-                        "id" => 72,
+                        "id" => "72",
+                        "name" => "Test admin user",
                         "username" => "test_admin@test.lt",
                         "email" => "test_admin@test.lt",
-                        "emails_messages" => "",
-                        "messages_low_funds" => 0,
-                        "messages_out_of_funds" => 0,
-                        "messages_accepted_campaigns" => 0,
-                        "messages_accepted_payments" => 0,
-                        "messages_new_features" => 0,
-                        "messages_new_bills" => 0,
-                        "type" => Users::USER_TYPE_ADMINISTRATOR,
+                        "emails_messages" => " ",
+                        "messages_low_funds" => "0",
+                        "messages_out_of_funds" => "0",
+                        "messages_accepted_campaigns" => "0",
+                        "messages_accepted_payments" => "0",
+                        "messages_new_features" => "0",
+                        "messages_new_bills" => "0",
+                        "type" => "3",
                     ),
                 ),
                 "companies" => Array(
                     Array(
                         "__name" => "client1_company1",
                         "user_id" => "[users.client1]",
-                        "status" => Campaigns::COMPANY_STATUS_DEFAULT,
+                        "status" => "1",
                         "name" => "Test kliento 1 test kompanija 1",
                         "address" => "adresas",
                         "company_code" => "kodas",
                         "pvm_code" => "pvm kodas",
                         "phone" => "telefonas",
+                        "has_funds" => "0",
                         // "balance" => 0,
                         // "last_payment_balance" => 0,
                     ),
@@ -201,9 +219,10 @@ class TestEnvironment extends TestEnvironmentBase
                         "created" => $created,
                         "approved_datetime" => NULL,
                         "name" => "Test kliento 1 test kompanijos 1 test reklaminė kampanija 1",
-                        "status" => Campaigns::STATUS_DEFAULT,
-                        "budget" => 0,
-                        "track_objects" => 0,
+                        "status" => "1",
+                        "daily_budget_limit" => "0",
+                        "track_objects" => "0",
+                        "has_daily_budget" => "0",
                     ),
                 ),
                 "campaigns_objects_map" => Array(
@@ -211,14 +230,21 @@ class TestEnvironment extends TestEnvironmentBase
                         "__name" => "campaign1_object1",
                         "campaigns_id" => "[campaigns.client1_company1_campaign1]",
                         "adresatai_id" => "[adresatai.object1]",
-                        "status" => Campaigns::OBJECTS_MAP_STATUS_DEFAULT,
-                        "show_time" => Campaigns::OBJECT_TIME_DEFAULT,
+                        "status" => "1",
+                        "show_time" => "1",
+                    ),
+                    Array(
+                        "__name" => "campaign1_object2",
+                        "campaigns_id" => "[campaigns.client1_company1_campaign1]",
+                        "adresatai_id" => "[adresatai.object2]",
+                        "status" => "1",
+                        "show_time" => "1",
                     ),
                 ),
                 "reklama" => Array(
                     Array(
                         "__name" => "client1_company1_campaign1_clip1",
-                        "ID_uzsakovo" => 0,
+                        "ID_uzsakovo" => "0",
                         "campaign_id" => "[campaigns.client1_company1_campaign1]",
                         "data" => $created,
                         "rodyti" => NULL,
@@ -227,18 +253,18 @@ class TestEnvironment extends TestEnvironmentBase
                         "rodyti_sekundziu" => NULL,
                         "pavadinimas" => NULL,
                         "komentaras" => NULL,
-                        "c_action" => 1,
+                        "c_action" => "1",
                         "add_date" => NULL,
                         "r_date" => NULL,
                         "r_user" => NULL,
                         "tipas" => NULL,
-                        "status" => Campaigns::CLIP_STATUS_DEFAULT,
-                        "type" => Campaigns::CLIP_TYPE_TEXT,
+                        "status" => "1",
+                        "type" => "1",
                         "approved_datetime" => NULL,
                     ),
                     Array(
                         "__name" => "client1_company1_campaign1_clip2",
-                        "ID_uzsakovo" => 0,
+                        "ID_uzsakovo" => "0",
                         "campaign_id" => "[campaigns.client1_company1_campaign1]",
                         "data" => $created,
                         "rodyti" => NULL,
@@ -247,13 +273,13 @@ class TestEnvironment extends TestEnvironmentBase
                         "rodyti_sekundziu" => NULL,
                         "pavadinimas" => NULL,
                         "komentaras" => NULL,
-                        "c_action" => 1,
+                        "c_action" => "1",
                         "add_date" => NULL,
                         "r_date" => NULL,
                         "r_user" => NULL,
                         "tipas" => NULL,
-                        "status" => Campaigns::CLIP_STATUS_DEFAULT,
-                        "type" => Campaigns::CLIP_TYPE_TEXT,
+                        "status" => "1",
+                        "type" => "1",
                         "approved_datetime" => NULL,
                     ),
                 ),
@@ -264,13 +290,13 @@ class TestEnvironment extends TestEnvironmentBase
                         "ID_adresato" => "[adresatai.object1]",
                         "darbo_laikas_nuo" => NULL,
                         "darbo_laikas_iki" => NULL,
-                        "c_action" => 1,
+                        "c_action" => "1",
                         "add_date" => NULL,
                         "r_date" => NULL,
                         "r_user" => NULL,
                         "kartai" => NULL,
                         "kartai_per_diena" => NULL,
-                        "status" => Campaigns::CLIP_OBJECT_MAP_STATUS_UNSET,
+                        "status" => "0",
                     ),
                     Array(
                         "__name" => "clip1_object2",
@@ -278,13 +304,13 @@ class TestEnvironment extends TestEnvironmentBase
                         "ID_adresato" => "[adresatai.object2]",
                         "darbo_laikas_nuo" => NULL,
                         "darbo_laikas_iki" => NULL,
-                        "c_action" => 1,
+                        "c_action" => "1",
                         "add_date" => NULL,
                         "r_date" => NULL,
                         "r_user" => NULL,
                         "kartai" => NULL,
                         "kartai_per_diena" => NULL,
-                        "status" => Campaigns::CLIP_OBJECT_MAP_STATUS_UNSET,
+                        "status" => "0",
                     ),
                     Array(
                         "__name" => "clip2_object1",
@@ -292,13 +318,13 @@ class TestEnvironment extends TestEnvironmentBase
                         "ID_adresato" => "[adresatai.object1]",
                         "darbo_laikas_nuo" => NULL,
                         "darbo_laikas_iki" => NULL,
-                        "c_action" => 1,
+                        "c_action" => "1",
                         "add_date" => NULL,
                         "r_date" => NULL,
                         "r_user" => NULL,
                         "kartai" => NULL,
                         "kartai_per_diena" => NULL,
-                        "status" => Campaigns::CLIP_OBJECT_MAP_STATUS_UNSET,
+                        "status" => "0",
                     ),
                     Array(
                         "__name" => "clip2_object2",
@@ -306,13 +332,13 @@ class TestEnvironment extends TestEnvironmentBase
                         "ID_adresato" => "[adresatai.object2]",
                         "darbo_laikas_nuo" => NULL,
                         "darbo_laikas_iki" => NULL,
-                        "c_action" => 1,
+                        "c_action" => "1",
                         "add_date" => NULL,
                         "r_date" => NULL,
                         "r_user" => NULL,
                         "kartai" => NULL,
                         "kartai_per_diena" => NULL,
-                        "status" => Campaigns::CLIP_OBJECT_MAP_STATUS_UNSET,
+                        "status" => "0",
                     ),
                 ),
                 "adresatai" => Array(
@@ -334,8 +360,8 @@ class TestEnvironment extends TestEnvironmentBase
                         "city_id" => "[cities.test1]",
                         // "status" => Campaigns::OBJECT_STATUS_DEFAULT,
                         "joomla_user_id" => "[users.object1]",
-                        "payout" => 0,
-                        "payout_peak" => 0,
+                        "payout" => "0",
+                        "payout_peak" => "0",
                     ),
                     Array(
                         "__name" => "object2",
@@ -352,11 +378,37 @@ class TestEnvironment extends TestEnvironmentBase
                         "r_user" => "user",
                         "r_date" => NULL,
                         "lokacija" => NULL,
-                        "city_id" => "[cities.test1]",
+                        "city_id" => "[cities.test2]",
                         // "status" => Campaigns::OBJECT_STATUS_DEFAULT,
                         "joomla_user_id" => "[users.object1]",
-                        "payout" => 0,
-                        "payout_peak" => 0,
+                        "payout" => "0",
+                        "payout_peak" => "0",
+                    ),
+                ),
+                "adresato_lokacijos" => Array(
+                    Array(
+                        "__name" => "object1_type1",
+                        "ID_adresato" => "[adresatai.object1]",
+                        "ID_lokacijos" => "[lokacijos.object_type1]",
+                        "add_date" => $created,
+                    ),
+                    Array(
+                        "__name" => "object2_type2",
+                        "ID_adresato" => "[adresatai.object2]",
+                        "ID_lokacijos" => "[lokacijos.object_type2]",
+                        "add_date" => $created,
+                    ),
+                ),
+                "lokacijos" => Array(
+                    Array(
+                        "__name" => "object_type1",
+                        "pavadinimas" => "Test reklamos taško tipas 1",
+                        "add_date" => $created,
+                    ),
+                     Array(
+                        "__name" => "object_type2",
+                        "pavadinimas" => "Test reklamos taško tipas 2",
+                        "add_date" => $created,
                     ),
                 ),
                 "regions" => Array(
@@ -364,12 +416,21 @@ class TestEnvironment extends TestEnvironmentBase
                         "__name" => "test1",
                         "name" => "Regionas 1",
                     ),
+                    Array(
+                        "__name" => "test2",
+                        "name" => "Regionas 2",
+                    ),
                 ),
                 "cities" => Array(
                     Array(
                         "__name" => "test1",
                         "region_id" => "[regions.test1]",
                         "name" => "Test miestas 1",
+                    ),
+                    Array(
+                        "__name" => "test2",
+                        "region_id" => "[regions.test2]",
+                        "name" => "Test miestas 2",
                     ),
                 ),
             );
@@ -383,7 +444,6 @@ class TestEnvironment extends TestEnvironmentBase
     {
         if (self::$_schema === FALSE)
         {
-            require_once APPPATH . "libraries/Hydrate.php";
             self::$_schema = Hydrate_schema::get();
         }
         
@@ -456,6 +516,31 @@ class TestEnvironment extends TestEnvironmentBase
         return FALSE;
     }
     
+    function deleteItem($table, $name)
+    {
+        $schema = $this->getSchema();
+        $CI =& get_instance();
+        
+        foreach (self::$dbEntries[$table] as $row_k => $row)
+        {
+            if ($row["__name"] == $name)
+            {
+                if (count($schema[$table]["primary"]) > 0)
+                {
+                    $pkField = $schema[$table]["primary"][0];
+                    $CI->db->where($pkField, $row[$pkField]);
+                    $CI->db->delete($table);
+                }
+                
+                unset(self::$dbEntries[$table][$row_k]);
+                
+                return TRUE;
+            }
+        }
+        
+        return FALSE;
+    }
+    
     function getTestDBRelatedItemId($table, $itemName)
     {
         $schema = $this->getSchema();
@@ -496,46 +581,18 @@ class TestEnvironment extends TestEnvironmentBase
     
     function removeTestDBEntries()
     {
-        $schema = $this->getSchema();
-        // $testDB = $this->getTestDB();
-        $CI =& get_instance();
-        
-        // foreach ($testDB as $table_k => $table)
-        // {
-            // if (isset(self::$dbEntries[$table_k]))
-                // foreach (self::$dbEntries[$table_k] as $row_k => $row)
-                // {
-                    // if (count($schema[$table_k]["primary"]) > 0)
-                    // {
-                        // $pkField = $schema[$table_k]["primary"][0];
-                        // $CI->db->where($pkField, $row[$pkField]);
-                        // $CI->db->delete($table_k);
-                    // }
-                    
-                    // unset(self::$dbEntries[$table_k][$row_k]);
-                // }
-        // }
-        
         foreach (self::$dbEntries as $table_k => $table)
             foreach (self::$dbEntries[$table_k] as $row_k => $row)
-            {
-                if (count($schema[$table_k]["primary"]) > 0)
-                {
-                    $pkField = $schema[$table_k]["primary"][0];
-                    $CI->db->where($pkField, $row[$pkField]);
-                    $CI->db->delete($table_k);
-                }
-                
-                unset(self::$dbEntries[$table_k][$row_k]);
-            }
-        
-        // Also, consider removing new entries, that other code (code in test cases) may have created.
-        // Dunno how to do that nicely though..
+                $this->deleteItem($table_k, $row["__name"]);
     }
     
     
     function sandboxEndCustom()
     {
+        // In case of crash - reset CI AR, to make sure DB entry removal does not get corrupted.
+        $CI =& get_instance();
+        $CI->db->_reset_select();
+        
         $this->removeTestDBEntries();
     }
 }

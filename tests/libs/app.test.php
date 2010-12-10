@@ -20,7 +20,10 @@ class AppTestCase extends UnitTestCase
     var $clip1Object2Map;
     var $clip2Object1Map;
     var $clip2Object2Map;
+    
     var $clientUser;
+    var $objectUser;
+    var $adminUser;
     
     var $companyStatusList;
     var $campaignStatusList;
@@ -36,6 +39,13 @@ class AppTestCase extends UnitTestCase
         $this->helpers = new TestHelpers();
         
         $this->env = TestEnvironment::getInstance();
+        
+        $this->clearSandbox();
+    }
+    
+    function clearSandbox()
+    {
+        $this->env->sandboxStart();
         
         $this->object1 = $this->env->getInsertedItem("adresatai", "object1");
         $this->object2 = $this->env->getInsertedItem("adresatai", "object2");
@@ -53,14 +63,10 @@ class AppTestCase extends UnitTestCase
         $this->clip2Object2Map = $this->env->getInsertedItem("reklama_kur", "clip2_object2");
         
         $this->clientUser = $this->env->getInsertedItem("users", "client1");
+        $this->objectUser = $this->env->getInsertedItem("users", "object1");
+        $this->adminUser = $this->env->getInsertedItem("users", "admin1"); 
         
         $this->CI =& get_instance();
-        
-        $this->companyStatusList = $this->CI->campaigns->getCompanyStatusList();
-        $this->campaignStatusList = $this->CI->campaigns->getStatusList();
-        // $this->objectStatusList = $this->CI->campaigns->getObjectStatusList();
-        $this->objectMapStatusList = $this->CI->campaigns->getObjectMapStatusList();
-        $this->clipStatusList = $this->CI->campaigns->getClipStatusList();
     }
     
 }

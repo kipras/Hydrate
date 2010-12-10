@@ -1,3 +1,5 @@
+1.9   - Small fixes and additional checks
+1.8   - Added Hydrate_query->countQuery()
 1.7   - Now always uses Services_JSON library to parse the json file, instead of the native json_decode(),
         because it is more error-tolerant and less restrictive than native json_decode()
 1.6   - Small fix for schema file reading

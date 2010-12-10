@@ -1,0 +1,10 @@
+RewriteEngine on
+
+# If not file and directory
+RewriteCond %{SCRIPT_FILENAME} !-f
+RewriteCond %{SCRIPT_FILENAME} !-d
+
+#RewriteCond $1 !^(index\.php|images|DOCS|styles|robots\.txt)
+RewriteRule ^(.*)$ index.php/$1 [L]
+
+

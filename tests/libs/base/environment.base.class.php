@@ -2,6 +2,8 @@
 
 class TestEnvironmentBase
 {
+    protected $_sandboxStarted = FALSE;
+    
     public function before()
     {
         // Do any initialization for your system environment here..
@@ -15,21 +17,29 @@ class TestEnvironmentBase
     
     public function after()
     {
-        $this->sandboxEnd();
+        if ($this->_sandboxStarted)
+            $this->sandboxEnd();
         
         if (method_exists($this, "afterCustom"))
             $this->afterCustom();
     }
     
-    private function sandboxStart()
+    public function sandboxStart()
     {
+        if ($this->_sandboxStarted)
+            $this->sandboxEnd();
+        
         if (method_exists($this, "sandboxStartCustom"))
             $this->sandboxStartCustom();
+        
+        $this->_sandboxStarted = TRUE;
     }
     
-    private function sandboxEnd()
+    public function sandboxEnd()
     {
         if (method_exists($this, "sandboxEndCustom"))
             $this->sandboxEndCustom();
+        
+        $this->_sandboxStarted = FALSE;
     }
 }

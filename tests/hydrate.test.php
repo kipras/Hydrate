@@ -50,6 +50,8 @@ class TestHydrate extends AppTestCase
         
         // e($expected);
         
+        // e(arrays_diff($result, $expected, TRUE));
+        
         $this->assertTrue(arrays_identical($result, $expected, TRUE));
     }
     

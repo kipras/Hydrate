@@ -1,0 +1,545 @@
+{
+    "adresatai" :
+    {
+        "columns" :
+        {
+            "user_ID" : {},
+            "imones_kodas" : {},
+            "filialas" : {},
+            "pavadinimas" : {},
+            "adresas" : {},
+            "tipas" : {},
+            "ID_grupes" : {},
+            "user_name" : {},
+            "user_psw" : {},
+            "add_date" : {
+                "type" : "datetime"
+            },
+            "r_user" : {},
+            "r_date" : {
+                "type" : "datetime"
+            },
+            "lokacija" : {},
+            "city_id" : {},
+            "joomla_user_id" : {},
+            "payout" : {},
+            "payout_peak" : {}
+        },
+        "primary" : "ID",
+        "relations" :
+        {
+            "types" :
+            {
+                "type" : "many",
+                "refTable" : "adresato_lokacijos",
+                "table" : "lokacijos",
+                "local" : "ID_adresato",
+                "foreign" : "ID_lokacijos"
+            },
+            "city" :
+            {
+                "table" : "cities",
+                "local" : "city_id"
+            },
+            "user" :
+            {
+                "table" : "users",
+                "local" : "joomla_user_id"
+            }
+        }
+    },
+    "adresato_lokacijos" :
+    {
+        "columns" :
+        {
+            "ID_adresato" : {},
+            "ID_lokacijos" : {},
+            "add_date" : {
+                "type" : "datetime"
+            },
+            "r_date" : {
+                "type" : "datetime"
+            },
+            "r_user" : {}
+        },
+        "primary" : "ID"
+    },
+    "balance_log" :
+    {
+        "columns" :
+        {
+            "company_id" : {},
+            "payment_id" : {},
+            "adresatai_id" : {},
+            "created" : {
+                "type" : "datetime"
+            },
+            "log_date" : {},
+            "type" : {},
+            "amount" : {},
+            "amount_with_pvm" : {},
+            "balance" : {},
+            "views" : {}
+        },
+        "relations" :
+        {
+            "company" :
+            {
+                "table" : "companies",
+                "local" : "company_id"
+            },
+            "payment" :
+            {
+                "table" : "payments",
+                "local" : "payment_id"
+            }
+        }
+    },
+    "campaigns" :
+    {
+        "columns" :
+        {
+            "company_id" : {},
+            "created" : {
+                "type" : "datetime"
+            },
+            "approved_datetime" : {
+                "type" : "datetime"
+            },
+            "name" : {},
+            "status" : {},
+            "daily_budget_limit" : {},
+            "track_objects" : {},
+            "has_daily_budget" : {}
+        },
+        "relations" :
+        {
+            "company" :
+            {
+                "table" : "companies",
+                "local" : "company_id"
+            },
+            "objects" :
+            {
+                "type" : "many",
+                "refTable" : "campaigns_objects_map",
+                "table" : "adresatai"
+            },
+            "campaigns_objects_map" :
+            {
+                "type" : "many",
+                "foreign" : "campaigns_id"
+            },
+            "campaigns_track_objects" :
+            {
+                "type" : "many",
+                "foreign" : "campaigns_id"
+            }
+        }
+    },
+    "campaigns_objects_map" :
+    {
+        "__comment" : "<campaigns_objects_map> risa reklamos taskus (<objects>) su reklamos kampanijomis (<campaigns>). Jis yra reikalingas todel, kad vien klipu risimo su reklamos taskais (<reklama_kur>) neuztenka, o pacios <reklama_kur> naudoti pririsimui prie kampaniju neiseina.",
+        "columns" :
+        {
+            "campaigns_id" : {},
+            "adresatai_id" : {},
+            "status" : {},
+            "show_time" : {}
+        },
+        "relations" :
+        {
+            "object" :
+            {
+                "table" : "adresatai",
+                "local" : "adresatai_id"
+            }
+        }
+    },
+    "campaigns_track_objects" :
+    {
+        "columns" :
+        {
+            "campaigns_id" : {},
+            "track_type" : {},
+            "item_id" : {}
+        }
+    },
+    "cities" :
+    {
+        "columns" :
+        {
+            "region_id" : {},
+            "name" : {}
+        },
+        "relations" :
+        {
+            "region" :
+            {
+                "table" : "regions",
+                "local" : "region_id"
+            }
+        }
+    },
+    "companies" :
+    {
+        "columns" :
+        {
+            "user_id" : {},
+            "status" : {},
+            "name" : {},
+            "address" : {},
+            "company_code" : {},
+            "pvm_code" : {},
+            "phone" : {},
+            "has_funds" : {}
+        },
+        "relations" :
+        {
+            "user" :
+            {
+                "table" : "users",
+                "local" : "user_id"
+            }
+        }
+    },
+    "faq_questions" :
+    {
+        "columns" :
+        {
+            "user_id" : {},
+            "created" : {
+                "type" : "datetime"
+            },
+            "question" : {},
+            "answer" : {}
+        },
+        "relations" :
+        {
+            "user" :
+            {
+                "table" : "users",
+                "local" : "user_id"
+            }
+        }
+    },
+    "lokacijos" :
+    {
+        "columns" :
+        {
+            "pavadinimas" : {},
+            "add_date" : {
+                "type" : "datetime"
+            }
+        },
+        "primary" : "ID"
+    },
+    "messages" :
+    {
+        "columns" :
+        {
+            "sender_id" : {},
+            "created" : {
+                "type" : "datetime"
+            },
+            "name" : {},
+            "text" : {}
+        },
+        "relations" :
+        {
+            "user" :
+            {
+                "table" : "users",
+                "local" : "user_id"
+            },
+            "sender" :
+            {
+                "table" : "users",
+                "local" : "sender_id"
+            },
+            "recipients" :
+            {
+                "type" : "many",
+                "refTable" : "messages_recipients",
+                "table" : "users",
+                "local" : "message_id",
+                "foreign" : "user_id"
+            }
+        }
+    },
+    "monitors" :
+    {
+        "columns" :
+        {
+            "adresatai_id" : {},
+            "name" : {}
+        },
+        "relations" :
+        {
+            "object" :
+            {
+                "table" : "adresatai",
+                "local" : "adresatai_id"
+            }
+        }
+    },
+    "objects" :
+    {
+        "columns" :
+        {
+            "user_id" : {},
+            "city_id" : {},
+            "type" : {},
+            "name" : {},
+            "address" : {},
+            "status" : {},
+            "payout" : {},
+            "payout_peak" : {}
+        },
+        "relations" :
+        {
+            "user" :
+            {
+                "table" : "users",
+                "local" : "user_id"
+            },
+            "city" :
+            {
+                "table" : "cities",
+                "local" : "city_id"
+            },
+            "campaigns" :
+            {
+                "type" : "many",
+                "refTable" : "campaigns_objects_map",
+                "table" : "adresatai"
+            }
+        }
+    },
+    "payments" :
+    {
+        "columns" :
+        {
+            "company_id" : {},
+            "created" : {
+                "type" : "datetime"
+            },
+            "amount" : {},
+            "amount_with_pvm" : {},
+            "bill_filename" : {},
+            "paid" : {},
+            "paid_datetime" : {
+                "type" : "datetime"
+            }
+        },
+        "relations" :
+        {
+            "company" :
+            {
+                "table" : "companies",
+                "local" : "company_id"
+            }
+        }
+    },
+    "pvm_bills" :
+    {
+        "columns" :
+        {
+            "company_id" : {},
+            "created" : {
+                "type" : "datetime"
+            },
+            "log_date" : {},
+            "amount" : {},
+            "amount_with_pvm" : {},
+            "pvm" : {},
+            "views" : {},
+            "bill_filename" : {}
+        },
+        "relations" :
+        {
+            "company" :
+            {
+                "table" : "companies",
+                "local" : "company_id"
+            }
+        }
+    },
+    "regions" :
+    {
+        "columns" :
+        {
+            "name" : {}
+        }
+    },
+    "reklama" :
+    {
+        "__comment" : "lauko <turinys> cia nera specialiai, nes jis daug uzima, tai kad rezultatai uzklausu nebutu gigantiski, ji reikia prideti specialiai, kai jo reikia.",
+        "columns" :
+        {
+            "ID_uzsakovo" : {},
+            "campaign_id" : {},
+            "data" : {
+                "type" : "datetime"
+            },
+            "rodyti" : {},
+            "pradzios_data" : {
+                "type" : "datetime"
+            },
+            "pabaigos_data" : {
+                "type" : "datetime"
+            },
+            "rodyti_sekundziu" : {},
+            "pavadinimas" : {},
+            "komentaras" : {},
+            "c_action" : {},
+            "add_date" : {
+                "type" : "datetime"
+            },
+            "r_date" : {
+                "type" : "datetime"
+            },
+            "r_user" : {},
+            "tipas" : {},
+            "status" : {},
+            "type" : {},
+            "approved_datetime" : {
+                "type" : "datetime"
+            }
+        },
+        "primary" : "ID",
+        "relations" :
+        {
+            "campaign" :
+            {
+                "table" : "campaigns",
+                "local" : "campaign_id"
+            },
+            "objects" :
+            {
+                "type" : "many",
+                "refTable" : "reklama_kur",
+                "table" : "adresatai",
+                "local" : "ID_reklamos",
+                "foreign" : "ID_adresato"
+            }
+        }
+    },
+    "reklama_ist_arch" :
+    {
+        "columns" :
+        {
+            "ID_reklamos" : {},
+            "ID_adresato" : {},
+            "rodyta_sekundziu" : {},
+            "add_date" : {
+                "type" : "datetime"
+            },
+            "r_date" : {
+                "type" : "datetime"
+            },
+            "r_user" : {},
+            "arch_date" : {
+                "type" : "datetime"
+            },
+            "price" : {}
+        },
+        "relations" :
+        {
+            "clip" :
+            {
+                "table" : "reklama",
+                "local" : "ID_reklamos"
+            },
+            "object" :
+            {
+                "table" : "adresatai",
+                "local" : "ID_adresato"
+            }
+        }
+    },
+    "reklama_kur" :
+    {
+        "columns" :
+        {
+            "ID_reklamos" : {},
+            "ID_adresato" : {},
+            "darbo_laikas_nuo" : {},
+            "darbo_laikas_iki" : {},
+            "c_action" : {},
+            "add_date" : {
+                "type" : "datetime"
+            },
+            "r_date" : {
+                "type" : "datetime"
+            },
+            "r_user" : {},
+            "kartai" : {},
+            "kartai_per_diena" : {},
+            "status" : {}
+        },
+        "primary" : "id",
+        "relations" :
+        {
+            "clip" :
+            {
+                "table" : "reklama",
+                "local" : "ID_reklamos"
+            },
+            "object" :
+            {
+                "table" : "adresatai",
+                "local" : "ID_adresato"
+            }
+        }
+    },
+    "statistics_calendar" :
+    {
+        "columns" :
+        {
+            "campaign_id" : {},
+            "date_from" : {},
+            "date_to" : {},
+            "views" : {},
+            "amount" : {}
+        },
+        "relations" :
+        {
+            "campaign" :
+            {
+                "table" : "campaigns",
+                "local" : "campaign_id"
+            }
+        }
+    },
+    "users" :
+    {
+        "columns" :
+        {
+            "username" : {},
+            "email" : {},
+            "emails_messages" : {},
+            "messages_low_funds" : {},
+            "messages_out_of_funds" : {},
+            "messages_accepted_campaigns" : {},
+            "messages_accepted_payments" : {},
+            "messages_new_features" : {},
+            "messages_new_bills" : {},
+            "type" : {}
+        },
+        "relations" :
+        {
+            "messages_sent" :
+            {
+                "type" : "many",
+                "table" : "messages",
+                "foreign" : "sender_id"
+            },
+            "object" :
+            {
+                "table" : "adresatai",
+                "foreign" : "joomla_user_id"
+            }
+        }
+    }
+}
