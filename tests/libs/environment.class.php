@@ -499,7 +499,7 @@ class TestEnvironment extends TestEnvironmentBase
                 
                 $CI =& get_instance();
                 $CI->db->insert($table, $rowInsertData);
-                $id = $CI->db->insert_id();
+                $id = (String)$CI->db->insert_id();
                 
                 if ($id !== NULL)
                 {

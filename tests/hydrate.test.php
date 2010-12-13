@@ -13,6 +13,8 @@ class TestHydrate extends AppTestCase
             Array("reklama" => Array("reklama_kur" => Array("object")))
         );
         $hq->where($hq->getFieldName($hq->hq->table, "id"), $this->campaign["id"]);
+        $hq->order_by($hq->getFieldName($hq->hq->relations["reklama"], "id"), "asc");
+        $hq->order_by($hq->getFieldName($hq->hq->relations["reklama"]["children"]["reklama_kur"], "id"), "asc");
         
         // $expectedCampaign = $this->campaign;
         // $expectedCampaign["reklama"] = Array(
@@ -100,6 +102,7 @@ class TestHydrate extends AppTestCase
             Array("campaign" => Array("reklama"))
         );
         $hq->where("ID", $this->clip1["ID"]);
+        $hq->order_by($hq->getFieldName($hq->hq->relations["campaign"]["children"]["reklama"], "ID"), "asc");
         
         
         $result = db_decode($hq->resultArray());
@@ -116,6 +119,8 @@ class TestHydrate extends AppTestCase
         // e($result);
         
         // e($expected);
+        
+        // e(arrays_diff($result, $expected, TRUE));
         
         $this->assertTrue(arrays_identical($result, $expected, TRUE));
     }
@@ -231,7 +236,7 @@ class TestHydrate extends AppTestCase
         $this->assertTrue(arrays_identical($result, $expected, TRUE));
     }
     
-    function testAddField()
+    function testAddField1()
     {
         // $this->clearSandbox();
         
@@ -245,6 +250,7 @@ class TestHydrate extends AppTestCase
             ->where("campaign_id", $this->campaign["id"])
             ->limit(1, 0)
             ->order_by($hq->getFieldName($hq->hq->table, "ID"), "ASC")
+            ->order_by($hq->getFieldName($hq->hq->relations["reklama_kur"], "ID"), "ASC")
         ;
         
         $result = db_decode($hq->resultArray());
@@ -262,6 +268,8 @@ class TestHydrate extends AppTestCase
         // e($result);
         
         // e($expected);
+        
+        // e(arrays_diff($result, $expected, TRUE));
         
         $this->assertTrue(arrays_identical($result, $expected, TRUE));
     }

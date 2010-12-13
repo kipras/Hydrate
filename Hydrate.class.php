@@ -694,10 +694,14 @@ class Hydrate
         if (count($fieldArr) > 0)
             $afterField = join(" ", $fieldArr);
         
+        // If we passed in a raw SQL query in parentheses ourselves - leave it as it is
+        if ($originalKey[0] == "(" AND $originalKey[strlen($originalKey) - 1] == ")")
+            return $originalKey;
+        
         // DEPRECATED: This is for backwards compatibility: try to see if the fieldname passed is already
         // passed through Hydrate->getFieldName()
         $passedThroughGetFieldName = FALSE;
-        if (count($relations) == 1)
+        if (count($relations) > 0)
             foreach ($hq->prefixes as $prefix)
                 if ($prefix == $relations[0])
                     return $originalKey;
