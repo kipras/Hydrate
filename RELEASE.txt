@@ -1,3 +1,6 @@
+1.10  - Added some preprocessing for where() clauses - you can now do where('a !=', NULL)
+        and it will translate to 'a IS NOT NULL'.
+        Note that CI does only where('a', NULL) -> 'a IS NULL' (it does not support the IS NOT version).
 1.9   - Small fixes and additional checks
 1.8   - Added Hydrate_query->countQuery()
 1.7   - Now always uses Services_JSON library to parse the json file, instead of the native json_decode(),

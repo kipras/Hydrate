@@ -23,6 +23,7 @@ require_once $pathToLibs . 'functions/database/export_db.1.1.function.php';
 require_once $pathToLibs . 'functions/array/arrays_identical.php';
 require_once $pathToLibs . 'functions/array/arrays_diff.php';
 require_once $pathToLibs . 'functions/debug/e.php';
+require_once $pathToLibs . 'functions/debug/trace.php';
 
 
 

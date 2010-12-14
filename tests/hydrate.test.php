@@ -331,6 +331,17 @@ class TestHydrate extends AppTestCase
         unset($expected[2]["__name"]);
         $this->assertTrue(arrays_identical($result, $expected));
         
+        $hq = $this->CI->hydrate
+            ->start("users")
+            ->where("id <>", NULL)
+            ;
+        $result = db_decode($hq->resultArray());
+        $expected = Array($this->clientUser, $this->objectUser, $this->adminUser);
+        unset($expected[0]["__name"]);
+        unset($expected[1]["__name"]);
+        unset($expected[2]["__name"]);
+        $this->assertTrue(arrays_identical($result, $expected));
+        
         // -----------------------------------------------------------------------
         
         $hq = $this->CI->hydrate
@@ -352,6 +363,49 @@ class TestHydrate extends AppTestCase
         unset($expected[2]["__name"]);
         $this->assertTrue(arrays_identical($result, $expected));
     }
+    
+    // TODO: test for xx = '' (a possible where clause)
+    function testWhereEqualsEmptyString()
+    {
+        $result = $this->CI->db
+            ->where("name", "")
+            ->get("cities")
+            ->result_array()
+            ;
+        $result = db_decode($result);
+        $expected = Array($this->env->getInsertedItem("cities", "noname"), $this->env->getInsertedItem("cities", "namespace"));
+        unset($expected[0]["__name"]);
+        unset($expected[1]["__name"]);
+        $this->assertTrue(arrays_identical($result, $expected));
+        
+        $hq = $this->CI->hydrate
+            ->start("cities")
+            ->where("name", "")
+            ;
+        $result = db_decode($hq->resultArray());
+        $expected = Array($this->env->getInsertedItem("cities", "noname"), $this->env->getInsertedItem("cities", "namespace"));
+        unset($expected[0]["__name"]);
+        unset($expected[1]["__name"]);
+        $this->assertTrue(arrays_identical($result, $expected));
+        
+        $hq = $this->CI->hydrate
+            ->start("cities")
+            ->where("name", " ")
+            ;
+        $result = db_decode($hq->resultArray());
+        $expected = Array($this->env->getInsertedItem("cities", "noname"), $this->env->getInsertedItem("cities", "namespace"));
+        unset($expected[0]["__name"]);
+        unset($expected[1]["__name"]);
+        $this->assertTrue(arrays_identical($result, $expected));
+    }
+    
+    // TODO: write some tests to see whether Hydrate escapes values passed in where() properly.
+    function testWhereEscaping()
+    {
+        
+    }
+    
+    
 }
 
 $test = &new GroupTest('Test Hydrate');

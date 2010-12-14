@@ -1,3 +1,9 @@
+- For tests/ :
+    - When exporting sql, check for an existing sql with the same contents (probably can be speeded up,
+        by adding a file size check first, and only checking for contents once we found a file with the
+        same size as our newly generated sql).
+    - Go through tests/hydrate.test.php and write tests, that have a TODO.
+
 - Connect Ucache (with memcached backend only) to it.
     - Also, create cache invalidations, when write queries are run through Hydrate.
         Although should probably only include write queries run through the AR api, not direct queries
@@ -9,3 +15,4 @@
         to invalidate all caches that have anything to do with that table.
     
     Anyway, this will be difficult... (But would be really awesome if we had this)
+    

@@ -432,6 +432,16 @@ class TestEnvironment extends TestEnvironmentBase
                         "region_id" => "[regions.test2]",
                         "name" => "Test miestas 2",
                     ),
+                    Array(
+                        "__name" => "noname",
+                        "region_id" => "[regions.test2]",
+                        "name" => "",
+                    ),
+                    Array(
+                        "__name" => "namespace",
+                        "region_id" => "[regions.test2]",
+                        "name" => " ",
+                    ),
                 ),
             );
         }
