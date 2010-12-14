@@ -117,6 +117,18 @@ class TestEnvironment extends TestEnvironmentBase
         // $test_controller->session->sess_use_database = FALSE;
         
         // $test_controller->testMethod();
+        
+        // Make database schema, so we don't have to edit it manually, when things change
+        $CI =& get_instance();
+        file_put_contents(dirname(__FILE__) . "/../sql/" . date("Y_m_d__H_i_s") . ".sql"
+                        , export_db(
+                            $CI->db->hostname
+                          , $CI->db->username
+                          , $CI->db->password
+                          , $CI->db->database
+                          , Array()
+                          , Array("auto_incr" => FALSE)
+        ));
     }
     
     function sandboxStartCustom()
