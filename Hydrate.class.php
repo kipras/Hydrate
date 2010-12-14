@@ -1017,6 +1017,17 @@ class Hydrate
         return $hq;
     }
     
+    function parseWhere($field, $value = '')
+    {
+
+
+        return Array(
+            "field" => ,
+            "operator" => ,
+            "value" => ,
+        );
+    }
+
     function where()
     {
         $args = func_get_args();
@@ -1034,7 +1045,11 @@ class Hydrate
                     $this->hq->returnNothing = TRUE;
             }
             else
-                $this->hq->where[] = $args; 
+            {
+                // Some preprocessing
+
+                $this->hq->where[] = $args;
+            }
         }
         
         // $this for chaining
