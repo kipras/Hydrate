@@ -1,3 +1,9 @@
+2.0   - Added where() clause escaping. Could not add it to 1.x branch, because it broke some tests of 1.x,
+        because escaping is turned on by default, and some constructs would get escaped and that would brake
+        things. For example Hydrate->where("a.x IN (1,2)") would get escaped to Hydrate->where("a.x IN '(1,2)'").
+        You can now get the same functionality with: Hydrate->where("a.x IN (1,2)", NULL, FALSE).
+
+
 1.10  - Added some preprocessing for where() clauses - you can now do where('a !=', NULL)
         and it will translate to 'a IS NOT NULL'.
         Note that CI does only where('a', NULL) -> 'a IS NULL' (it does not support the IS NOT version).

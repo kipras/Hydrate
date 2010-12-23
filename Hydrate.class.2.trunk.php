@@ -1,28 +1,5 @@
 <?php
 
-/*
- * Version log:
- *
- * 1.10:    - Added some preprocessing for where() clauses - you can now do where('a !=', NULL)
-                and it will translate to 'a IS NOT NULL'.
-                Note that CI does only where('a', NULL) -> 'a IS NULL' (it does not support the IS NOT version).
- * 1.9:     - Small fixes and additional checks
- * 1.8:     - Added Hydrate_query->countQuery()
- * 1.7:     - Now always uses Services_JSON library to parse the json file, instead of the native json_decode(),
-                because it is more error-tolerant and less restrictive than native json_decode()
- * 1.6:     - Small fix for schema file reading
- * 1.5:     - Same chage as 1.2.2 but for 1.4
- * 1.4:     - Same chage as 1.2.1 but for 1.3
- * 1.3:     - Completely independent of Code Igniter (older versions could only be used in CI projects)
-            - Now you can pass the CI AR instance to Hydrate directly.
-            - You can also put the schema in the current.schema file directly, if you want (as opposed to
- *              only putting a pointer to the current schema file there. Putting a pointer also works.
- * 1.2.2    - Fixed an error on MS SQL, which would come up, when there is limit() and more than one order_by()
- * 1.2.1    - Allows to pass Hydrate->where() raw SQL queries in parentheses, i.e. Hydrate->where("(x AND y)")
- * 1.2:     - order_by() can now be called multiple times, to order by several fields
- */
-
-
 class Hydrate_error
 {
     static $ob_level = FALSE;
@@ -1077,8 +1054,7 @@ class Hydrate
                 $whereAssoc['value'][$k] =  self::$db->escape($v);
             $whereAssoc['value'] = '(' . join(',', $whereAssoc['value']) . ')';
         }
-        
-        if ($whereAssoc['value'] === NULL)
+        else if ($whereAssoc['value'] === NULL)
         {
             if ($whereAssoc['operator'] == '=')
                 $whereAssoc['operator'] = 'IS';
@@ -1087,9 +1063,12 @@ class Hydrate
             
             $whereAssoc['value'] = 'NULL';
         }
-        
-        if (trim($whereAssoc['value']) == '')
+        else
             $whereAssoc['value'] = self::$db->escape($whereAssoc['value']);
+        
+        
+        // if (trim($whereAssoc['value']) == '')
+            // $whereAssoc['value'] = self::$db->escape($whereAssoc['value']);
         // End Post-processing
         
         return $whereAssoc;
@@ -1388,5 +1367,4 @@ class Hydrate
         
         return $hydratedRow;
     }
-    
 }

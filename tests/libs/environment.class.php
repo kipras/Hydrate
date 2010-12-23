@@ -454,6 +454,11 @@ class TestEnvironment extends TestEnvironmentBase
                         "region_id" => "[regions.test2]",
                         "name" => " ",
                     ),
+                    Array(
+                        "__name" => "namequote",
+                        "region_id" => "[regions.test2]",
+                        "name" => "test'test",
+                    ),
                 ),
             );
         }

@@ -2,7 +2,7 @@
 
 require_once dirname(__FILE__) . "/libs/app.test.php";
 
-class TestHydrate extends AppTestCase
+class TestHydrate_2 extends AppTestCase
 {
     // Test of complex hydrations
     function test1_1()
@@ -150,7 +150,7 @@ class TestHydrate extends AppTestCase
             "campaigns"
           , Array("reklama")
         );
-        $hq->where("reklama.ID IN ({$this->clip1["ID"]}, {$this->clip2["ID"]})");
+        $hq->where("reklama.ID IN ({$this->clip1["ID"]}, {$this->clip2["ID"]})", NULL, FALSE);
         
         $result = db_decode($hq->resultArray());
         
@@ -165,7 +165,7 @@ class TestHydrate extends AppTestCase
             "campaigns"
           , Array("reklama")
         );
-        $hq->where($hq->getFieldName($hq->hq->relations["reklama"], "ID") . " IN ({$this->clip1["ID"]}, {$this->clip2["ID"]})");
+        $hq->where($hq->getFieldName($hq->hq->relations["reklama"], "ID") . " IN ({$this->clip1["ID"]}, {$this->clip2["ID"]})", NULL, FALSE);
         
         $result = db_decode($hq->resultArray());
         
@@ -399,15 +399,37 @@ class TestHydrate extends AppTestCase
         $this->assertTrue(arrays_identical($result, $expected));
     }
     
-    // TODO: write some tests to see whether Hydrate escapes values passed in where() properly.
+    // See whether Hydrate escapes values passed in where() properly.
     function testWhereEscaping()
     {
+        $hq = $this->CI->hydrate
+            ->start("cities")
+            ->where("name", "test'test")
+            ;
+        $result = db_decode($hq->resultArray());
+        $expected = Array($this->env->getInsertedItem("cities", "namequote"));
+        unset($expected[0]["__name"]);
+        $this->assertTrue(arrays_identical($result, $expected));
         
+        
+        $hq = $this->CI->hydrate
+            ->start("regions", Array("cities"))
+            ;
+        $hq->hq->relations["cities"]["query"] = Array(
+            "name" => "test'test"
+        );
+        $result = db_decode($hq->resultArray());
+        $expected = Array($this->env->getInsertedItem("regions", "test2"));
+        unset($expected[0]["__name"]);
+        $expected[0]["cities"] = Array($this->env->getInsertedItem("cities", "namequote"));
+        unset($expected[0]["cities"][0]["__name"]);
+        
+        $this->assertTrue(arrays_identical($result, $expected));
     }
     
     
 }
 
-$test = &new GroupTest('Test Hydrate');
-$test->addTestCase(new TestHydrate());
+$test = &new GroupTest('Test Hydrate 2.x');
+$test->addTestCase(new TestHydrate_2());
 $test->run(new HtmlReporter());
