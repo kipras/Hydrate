@@ -1,3 +1,11 @@
+- For 1.x and later:
+    - Add support for recursive relations.
+        For example in kritikai we have nodes, nodes can have categories (relation to node itself) and categories
+        can have parent categories (site types) which results in another relaton to node. I need to test
+        for such a situation and see if it works, and if not - add this feature to Hydrate.
+      UPDATE: they already work (checked in 1.8)
+
+
 - For tests/ :
     - When exporting sql, check for an existing sql with the same contents (probably can be speeded up,
         by adding a file size check first, and only checking for contents once we found a file with the
