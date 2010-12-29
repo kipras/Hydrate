@@ -141,36 +141,36 @@ class TestHydrate_2 extends AppTestCase
         $this->_testWhereInResult($result);
     }
     
-    // Tests, when where() contains a IN () clause, specified as text
-    function testWhereInText1()
-    {
-        // $this->clearSandbox();
+    // // Tests, when where() contains a IN () clause, specified as text
+    // function testWhereInText1()
+    // {
+        // // $this->clearSandbox();
         
-        $hq = $this->CI->hydrate->start(
-            "campaigns"
-          , Array("reklama")
-        );
-        $hq->where("reklama.ID IN ({$this->clip1["ID"]}, {$this->clip2["ID"]})", NULL, FALSE);
+        // $hq = $this->CI->hydrate->start(
+            // "campaigns"
+          // , Array("reklama")
+        // );
+        // $hq->where("reklama.ID IN ({$this->clip1["ID"]}, {$this->clip2["ID"]})", NULL, FALSE);
         
-        $result = db_decode($hq->resultArray());
+        // $result = db_decode($hq->resultArray());
         
-        $this->_testWhereInResult($result);
-    }
+        // $this->_testWhereInResult($result);
+    // }
     
-    function testWhereInText2()
-    {
-        // $this->clearSandbox();
+    // function testWhereInText2()
+    // {
+        // // $this->clearSandbox();
         
-        $hq = $this->CI->hydrate->start(
-            "campaigns"
-          , Array("reklama")
-        );
-        $hq->where($hq->getFieldName($hq->hq->relations["reklama"], "ID") . " IN ({$this->clip1["ID"]}, {$this->clip2["ID"]})", NULL, FALSE);
+        // $hq = $this->CI->hydrate->start(
+            // "campaigns"
+          // , Array("reklama")
+        // );
+        // $hq->where($hq->getFieldName($hq->hq->relations["reklama"], "ID") . " IN ({$this->clip1["ID"]}, {$this->clip2["ID"]})", NULL, FALSE);
         
-        $result = db_decode($hq->resultArray());
+        // $result = db_decode($hq->resultArray());
         
-        $this->_testWhereInResult($result);
-    }
+        // $this->_testWhereInResult($result);
+    // }
     
     function _testWhereInResult($result)
     {
@@ -313,16 +313,18 @@ class TestHydrate_2 extends AppTestCase
     function testNull()
     {
         $hq = $this->CI->hydrate
-            ->start("users")
-            ->where("id", NULL)
+            ->start("cities")
+            ->where("region_id", NULL)
             ;
         $result = db_decode($hq->resultArray());
-        $expected = Array();
+        $expected = Array($this->env->getInsertedItem("cities", "region_null"));
+        unset($expected[0]["__name"]);
         $this->assertTrue(arrays_identical($result, $expected));
         
         $hq = $this->CI->hydrate
             ->start("users")
             ->where("id !=", NULL)
+            ->order_by("id")
             ;
         $result = db_decode($hq->resultArray());
         $expected = Array($this->clientUser, $this->objectUser, $this->adminUser);
@@ -334,6 +336,7 @@ class TestHydrate_2 extends AppTestCase
         $hq = $this->CI->hydrate
             ->start("users")
             ->where("id <>", NULL)
+            ->order_by("id")
             ;
         $result = db_decode($hq->resultArray());
         $expected = Array($this->clientUser, $this->objectUser, $this->adminUser);
@@ -344,17 +347,29 @@ class TestHydrate_2 extends AppTestCase
         
         // -----------------------------------------------------------------------
         
+        $result = $this->CI->db
+            ->from("cities")
+            ->where("region_id IS NULL")
+            ->get()
+            ->result_array()
+            ;
+        $result = db_decode($result);
+        
+        // The default behavior here, should be the same as that of CI :
+        // if a custom string passed in - do NOT escape it
         $hq = $this->CI->hydrate
-            ->start("users")
-            ->where("id IS NULL")
+            ->start("cities")
+            ->where("region_id IS NULL")
             ;
         $result = db_decode($hq->resultArray());
-        $expected = Array();
+        $expected = Array($this->env->getInsertedItem("cities", "region_null"));
+        unset($expected[0]["__name"]);
         $this->assertTrue(arrays_identical($result, $expected));
         
         $hq = $this->CI->hydrate
             ->start("users")
             ->where("id IS NOT NULL")
+            ->order_by("id")
             ;
         $result = db_decode($hq->resultArray());
         $expected = Array($this->clientUser, $this->objectUser, $this->adminUser);
@@ -369,6 +384,7 @@ class TestHydrate_2 extends AppTestCase
     {
         $result = $this->CI->db
             ->where("name", "")
+            ->order_by("id")
             ->get("cities")
             ->result_array()
             ;
@@ -381,6 +397,7 @@ class TestHydrate_2 extends AppTestCase
         $hq = $this->CI->hydrate
             ->start("cities")
             ->where("name", "")
+            ->order_by("id")
             ;
         $result = db_decode($hq->resultArray());
         $expected = Array($this->env->getInsertedItem("cities", "noname"), $this->env->getInsertedItem("cities", "namespace"));
@@ -391,6 +408,7 @@ class TestHydrate_2 extends AppTestCase
         $hq = $this->CI->hydrate
             ->start("cities")
             ->where("name", " ")
+            ->order_by("id")
             ;
         $result = db_decode($hq->resultArray());
         $expected = Array($this->env->getInsertedItem("cities", "noname"), $this->env->getInsertedItem("cities", "namespace"));
@@ -411,19 +429,32 @@ class TestHydrate_2 extends AppTestCase
         unset($expected[0]["__name"]);
         $this->assertTrue(arrays_identical($result, $expected));
         
-        
         $hq = $this->CI->hydrate
             ->start("regions", Array("cities"))
+            ->where("cities.name", "test'test")
             ;
-        $hq->hq->relations["cities"]["query"] = Array(
-            "name" => "test'test"
-        );
         $result = db_decode($hq->resultArray());
         $expected = Array($this->env->getInsertedItem("regions", "test2"));
         unset($expected[0]["__name"]);
         $expected[0]["cities"] = Array($this->env->getInsertedItem("cities", "namequote"));
         unset($expected[0]["cities"][0]["__name"]);
+        $this->assertTrue(arrays_identical($result, $expected));
         
+        $hq = $this->CI->hydrate
+            ->start("regions", Array("cities"))
+            ->order_by("id")
+            ;
+        $hq->hq->relations["cities"]["query"] = Array(
+            "cities.name" => "test'test"
+        );
+        $result = db_decode($hq->resultArray());
+        $expected = Array($this->env->getInsertedItem("regions", "test1"), $this->env->getInsertedItem("regions", "test2"));
+        unset($expected[0]["__name"]);
+        unset($expected[1]["__name"]);
+        $expected[0]["cities"] = Array();
+        $expected[1]["cities"] = Array($this->env->getInsertedItem("cities", "namequote"));
+        unset($expected[1]["cities"][0]["__name"]);
+        // e(arrays_diff($result, $expected));
         $this->assertTrue(arrays_identical($result, $expected));
     }
     

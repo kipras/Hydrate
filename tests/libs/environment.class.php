@@ -137,6 +137,15 @@ class TestEnvironment extends TestEnvironmentBase
         $this->createTestDBEntries();
     }
     
+    function sandboxEndCustom()
+    {
+        // In case of crash - reset CI AR, to make sure DB entry removal does not get corrupted.
+        $CI =& get_instance();
+        $CI->db->_reset_select();
+        
+        $this->removeTestDBEntries();
+    }
+    
     function _warning($string)
     {
         echo "{$string} <br />\n";
@@ -459,6 +468,11 @@ class TestEnvironment extends TestEnvironmentBase
                         "region_id" => "[regions.test2]",
                         "name" => "test'test",
                     ),
+                    Array(
+                        "__name" => "region_null",
+                        "region_id" => NULL,
+                        "name" => "city without region",
+                    ),
                 ),
             );
         }
@@ -485,7 +499,11 @@ class TestEnvironment extends TestEnvironmentBase
         {
             foreach ($table as $row)
             {
-                $this->insertItem($table_k, $row);
+                // Insert item, if not yet inserted : during this loop, relationships are created on-demand, so we might
+                // try to create an item here, which is already created, because it relates to some earlier created item.
+                // Thats why we use getInsertedItem() here instead of insertItem(), to make sure we do not end up
+                // with duplicated items.
+                $this->getInsertedItem($table_k, $row["__name"]);
             }
         }
     }
@@ -614,12 +632,5 @@ class TestEnvironment extends TestEnvironmentBase
     }
     
     
-    function sandboxEndCustom()
-    {
-        // In case of crash - reset CI AR, to make sure DB entry removal does not get corrupted.
-        $CI =& get_instance();
-        $CI->db->_reset_select();
-        
-        $this->removeTestDBEntries();
-    }
+    
 }

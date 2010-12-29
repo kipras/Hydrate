@@ -1105,10 +1105,13 @@ class Hydrate
             }
             else
             {
-                // If we passed in a raw SQL query in parentheses ourselves - leave it as it is,
-                // otherwise - parse it for some preprocessing
-                if ($args[0][0] == "(" AND $args[0][strlen($args[0]) - 1] == ")")
+                // If we passed in a raw SQL query - do not escape it (default CI behavior)
+                if (count($args) == 1)
                     $this->hq->where[] = $args;
+                // // If we passed in a raw SQL query in parentheses ourselves - leave it as it is,
+                // // otherwise - parse it for some preprocessing
+                // if ($args[0][0] == "(" AND $args[0][strlen($args[0]) - 1] == ")")
+                    // $this->hq->where[] = $args;
                 else
                 {
                     $parsedWhere        = $this->parseWhere($args);
