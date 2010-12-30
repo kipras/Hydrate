@@ -2,7 +2,7 @@
 
 require_once dirname(__FILE__) . "/libs/app.test.php";
 
-class TestHydrate_1 extends AppTestCase
+class TestHydrate extends AppTestCase
 {
     // Test of complex hydrations
     function test1_1()
@@ -313,12 +313,11 @@ class TestHydrate_1 extends AppTestCase
     function testNull()
     {
         $hq = $this->CI->hydrate
-            ->start("cities")
-            ->where("region_id", NULL)
+            ->start("users")
+            ->where("id", NULL)
             ;
         $result = db_decode($hq->resultArray());
-        $expected = Array($this->env->getInsertedItem("cities", "region_null"));
-        unset($expected[0]["__name"]);
+        $expected = Array();
         $this->assertTrue(arrays_identical($result, $expected));
         
         $hq = $this->CI->hydrate
@@ -347,23 +346,12 @@ class TestHydrate_1 extends AppTestCase
         
         // -----------------------------------------------------------------------
         
-        $result = $this->CI->db
-            ->from("cities")
-            ->where("region_id IS NULL")
-            ->get()
-            ->result_array()
-            ;
-        $result = db_decode($result);
-        
-        // The default behavior here, should be the same as that of CI :
-        // if a custom string passed in - do NOT escape it
         $hq = $this->CI->hydrate
-            ->start("cities")
-            ->where("region_id IS NULL")
+            ->start("users")
+            ->where("id IS NULL")
             ;
         $result = db_decode($hq->resultArray());
-        $expected = Array($this->env->getInsertedItem("cities", "region_null"));
-        unset($expected[0]["__name"]);
+        $expected = Array();
         $this->assertTrue(arrays_identical($result, $expected));
         
         $hq = $this->CI->hydrate
@@ -417,50 +405,15 @@ class TestHydrate_1 extends AppTestCase
         $this->assertTrue(arrays_identical($result, $expected));
     }
     
-    // See whether Hydrate escapes values passed in where() properly.
+    // TODO: write some tests to see whether Hydrate escapes values passed in where() properly.
     function testWhereEscaping()
     {
-        $hq = $this->CI->hydrate
-            ->start("cities")
-            ->where("name", "test'test")
-            ;
-        $result = db_decode($hq->resultArray());
-        $expected = Array($this->env->getInsertedItem("cities", "namequote"));
-        unset($expected[0]["__name"]);
-        $this->assertTrue(arrays_identical($result, $expected));
         
-        $hq = $this->CI->hydrate
-            ->start("regions", Array("cities"))
-            ->where("cities.name", "test'test")
-            ;
-        $result = db_decode($hq->resultArray());
-        $expected = Array($this->env->getInsertedItem("regions", "test2"));
-        unset($expected[0]["__name"]);
-        $expected[0]["cities"] = Array($this->env->getInsertedItem("cities", "namequote"));
-        unset($expected[0]["cities"][0]["__name"]);
-        $this->assertTrue(arrays_identical($result, $expected));
-        
-        $hq = $this->CI->hydrate
-            ->start("regions", Array("cities"))
-            ->order_by("id")
-            ;
-        $hq->hq->relations["cities"]["query"] = Array(
-            "cities.name" => "test'test"
-        );
-        $result = db_decode($hq->resultArray());
-        $expected = Array($this->env->getInsertedItem("regions", "test1"), $this->env->getInsertedItem("regions", "test2"));
-        unset($expected[0]["__name"]);
-        unset($expected[1]["__name"]);
-        $expected[0]["cities"] = Array();
-        $expected[1]["cities"] = Array($this->env->getInsertedItem("cities", "namequote"));
-        unset($expected[1]["cities"][0]["__name"]);
-        // e(arrays_diff($result, $expected));
-        $this->assertTrue(arrays_identical($result, $expected));
     }
     
     
 }
 
-$test = &new GroupTest('Test Hydrate 1.x');
-$test->addTestCase(new TestHydrate_1());
+$test = &new GroupTest('Test Hydrate');
+$test->addTestCase(new TestHydrate());
 $test->run(new HtmlReporter());
