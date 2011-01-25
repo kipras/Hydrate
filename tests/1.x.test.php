@@ -274,7 +274,7 @@ class TestHydrate_1 extends AppTestCase
         $this->assertTrue(arrays_identical($result, $expected, TRUE));
     }
     
-    function testRawWhere()
+    function testRawWhere1()
     {
         // $this->clearSandbox();
         
@@ -309,6 +309,35 @@ class TestHydrate_1 extends AppTestCase
         
         $this->assertTrue(arrays_identical($result, $expected));
     }
+    
+    // function testRawWhere2()
+    // {
+        // // $this->clearSandbox();
+        
+        // $hq = $this->CI->hydrate->start(
+            // "users"
+          // , Array("companies")
+        // );
+        // $hq
+            // ->where("2 * (" . $hq->getFieldName($hq->hq->table, "id"). ") + 10 = 152")
+            // ->order_by($hq->getFieldName($hq->hq->table, "id"), "ASC")
+        // ;
+        
+        // $result = db_decode($hq->resultArray());
+        
+        // $expected = Array($this->objectUser);
+        // unset($expected[0]["__name"]);
+        
+        // $expected[0]["companies"] = Array();
+        
+        // // e($result);
+        
+        // // e($expected);
+        
+        // // e(arrays_diff($result, $expected));
+        
+        // $this->assertTrue(arrays_identical($result, $expected));
+    // }
     
     function testNull()
     {
@@ -458,6 +487,130 @@ class TestHydrate_1 extends AppTestCase
         $this->assertTrue(arrays_identical($result, $expected));
     }
     
+    // // ---------------------- ADDED IN 1.12 ----------------------
+    
+    // Test for custom field support regression, introduced in 1.10
+    function testCustomField_1_10_regression___fixed_in_1_12()
+    {
+        $hq = $this->CI->hydrate->start(
+            "users"
+        );
+        
+        $hq->addCustomField("", "3*(" . $hq->getFieldName($hq->hq->table, "id"). " + 5)", "custom");
+        $hq->where("custom =", 228);
+        
+        $result = db_decode($hq->resultArray());
+        
+        $expected = Array($this->objectUser);
+        unset($expected[0]["__name"]);
+        $expected[0]['custom'] = '228';
+        
+        // e($result);
+        
+        // e($expected);
+        
+        // e(arrays_diff($result, $expected));
+        
+        $this->assertTrue(arrays_identical($result, $expected));
+    }
+    
+    // // Additional tests for custom field support:
+    
+    // function testCustomField2()
+    // {
+        // $hq = $this->CI->hydrate->start(
+            // "users"
+        // );
+        
+        // $hq->addCustomField("", "3 * (" . $hq->getFieldName($hq->hq->table, "id"). " + 5)", "custom");
+        // $hq->where("custom", 228);
+        
+        // $result = db_decode($hq->resultArray());
+        
+        // $expected = Array($this->objectUser);
+        // unset($expected[0]["__name"]);
+        // $expected[0]['custom'] = '228';
+        
+        // // e($result);
+        
+        // // e($expected);
+        
+        // // e(arrays_diff($result, $expected));
+        
+        // $this->assertTrue(arrays_identical($result, $expected));
+    // }
+    
+    // function testCustomField3()
+    // {
+        // $hq = $this->CI->hydrate->start(
+            // "users"
+        // );
+        
+        // $hq->addCustomField("", "3 * (" . $hq->getFieldName($hq->hq->table, "id"). " + 5)", "custom");
+        // $hq->where("a.custom", 228);
+        
+        // $result = db_decode($hq->resultArray());
+        
+        // $expected = Array($this->objectUser);
+        // unset($expected[0]["__name"]);
+        // $expected[0]['custom'] = '228';
+        
+        // // e($result);
+        
+        // // e($expected);
+        
+        // // e(arrays_diff($result, $expected));
+        
+        // $this->assertTrue(arrays_identical($result, $expected));
+    // }
+    
+    // function testCustomField4()
+    // {
+        // $hq = $this->CI->hydrate->start(
+            // "users"
+        // );
+        
+        // $hq->addCustomField("", "3 * (" . $hq->getFieldName($hq->hq->table, "id"). " + 5)", "custom");
+        // $hq->where("custom = 228");
+        
+        // $result = db_decode($hq->resultArray());
+        
+        // $expected = Array($this->objectUser);
+        // unset($expected[0]["__name"]);
+        // $expected[0]['custom'] = '228';
+        
+        // // e($result);
+        
+        // // e($expected);
+        
+        // // e(arrays_diff($result, $expected));
+        
+        // $this->assertTrue(arrays_identical($result, $expected));
+    // }
+    
+    // function testCustomField5()
+    // {
+        // $hq = $this->CI->hydrate->start(
+            // "users"
+        // );
+        
+        // $hq->addCustomField("", "3 * (" . $hq->getFieldName($hq->hq->table, "id"). " + 5)", "custom");
+        // $hq->where("a.custom = 228");
+        
+        // $result = db_decode($hq->resultArray());
+        
+        // $expected = Array($this->objectUser);
+        // unset($expected[0]["__name"]);
+        // $expected[0]['custom'] = '228';
+        
+        // // e($result);
+        
+        // // e($expected);
+        
+        // // e(arrays_diff($result, $expected));
+        
+        // $this->assertTrue(arrays_identical($result, $expected));
+    // }
     
 }
 

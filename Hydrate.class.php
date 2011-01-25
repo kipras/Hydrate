@@ -648,7 +648,7 @@ class Hydrate
     }
     
     // This is used to transform field names from the format "relation1.relation2.field_name"
-    // into a field name, which ca be used in the query (from Hydrate->getFieldName())
+    // into a field name, which can be used in the query (from Hydrate->getFieldName())
     // NOTE: right now, this function preserves backwards-compatibility, and checks for the possibility
     // of the field name already being passed through Hydrate->getFieldName() and leaves it unmodified,
     // if this is the case.
@@ -830,9 +830,9 @@ class Hydrate
         
         foreach ($hq->where as $where)
             if (is_array($where) AND count($where) > 1)
-                call_user_func_array(Array(self::$db, "where"), Array($this->_getFieldName($where[0]), $where[1]));
+                call_user_func_array(Array(self::$db, "where"), Array($where[0]), $where[1]);
             else
-                call_user_func_array(Array(self::$db, "where"), Array($this->_getFieldName($where[0])));
+                call_user_func_array(Array(self::$db, "where"), Array($where[0]));
         foreach ($hq->where_in as $where_in)
             if (is_array($where_in) AND count($where_in) > 1)
                 call_user_func_array(Array(self::$db, "where_in"), Array($this->_getFieldName($where_in[0]), $where_in[1]));
@@ -996,11 +996,49 @@ class Hydrate
         return $hq;
     }
     
+    function where()
+    {
+        $args = func_get_args();
+        if (is_array($args[0]))
+        {
+            foreach ($args[0] as $k => $v)
+                $this->where($k, $v);
+        }
+        else
+        {
+            if (count($args) > 1 AND is_array($args[1]))
+            {
+                $this->hq->where_in[] = $args;
+                if (count($args[1]) == 0)
+                    $this->hq->returnNothing = TRUE;
+            }
+            else
+            {
+                // If we passed in a raw SQL query - do not escape it (default CI behavior)
+                if (count($args) == 1)
+                    $this->hq->where[] = Array($this->_getFieldName($args[0]));
+                // // If we passed in a raw SQL query in parentheses ourselves - leave it as it is,
+                // // otherwise - parse it for some preprocessing
+                // if ($args[0][0] == "(" AND $args[0][strlen($args[0]) - 1] == ")")
+                    // $this->hq->where[] = $args;
+                else
+                {
+                    $parsedWhere        = $this->parseWhere($args);
+                    $CiWhere            = $this->parsedWhereToCiWhere($parsedWhere);
+                    $this->hq->where[]  = $CiWhere;
+                }
+            }
+        }
+        
+        // $this for chaining
+        return $this;
+    }
+    
     function parseWhere($args)
     {
-        $fieldName = $this->_getFieldName($args[0]);
+        $fieldNameArr = explode(" ", trim($args[0]));
+        $fieldNameArr[0] =  $this->_getFieldName($fieldNameArr[0]);
         
-        $fieldNameArr = explode(" ", $fieldName);
         $whereArr = Array();
         foreach ($fieldNameArr as $v2)
         {
@@ -1033,6 +1071,10 @@ class Hydrate
         }
         // End Pre-processing
         
+        $field = $whereArr[0];
+        $operator = $whereArr[1];
+        $value = $whereArr[2];
+        
         if (count($whereArr) != 3)
             Hydrate_error::show( __METHOD__,
                 "parseWhere({$field}, {$value}):\n"
@@ -1040,9 +1082,9 @@ class Hydrate
               . "Something is not right with this one.");
         
         $whereAssoc = Array(
-            'field' => $whereArr[0],
-            'operator' => $whereArr[1],
-            'value' => $whereArr[2],
+            'field' => $field,
+            'operator' => $operator,
+            'value' => $value,
         );
         
         // Post-processing
@@ -1085,44 +1127,6 @@ class Hydrate
             // $whereAssoc['value'],
             $whereAssoc['field'] . ' ' . $whereAssoc['operator'] . ' ' . $whereAssoc['value']
         );
-    }
-    
-    function where()
-    {
-        $args = func_get_args();
-        if (is_array($args[0]))
-        {
-            foreach ($args[0] as $k => $v)
-                $this->where($k, $v);
-        }
-        else
-        {
-            if (count($args) > 1 AND is_array($args[1]))
-            {
-                $this->hq->where_in[] = $args;
-                if (count($args[1]) == 0)
-                    $this->hq->returnNothing = TRUE;
-            }
-            else
-            {
-                // If we passed in a raw SQL query - do not escape it (default CI behavior)
-                if (count($args) == 1)
-                    $this->hq->where[] = $args;
-                // // If we passed in a raw SQL query in parentheses ourselves - leave it as it is,
-                // // otherwise - parse it for some preprocessing
-                // if ($args[0][0] == "(" AND $args[0][strlen($args[0]) - 1] == ")")
-                    // $this->hq->where[] = $args;
-                else
-                {
-                    $parsedWhere        = $this->parseWhere($args);
-                    $CiWhere            = $this->parsedWhereToCiWhere($parsedWhere);
-                    $this->hq->where[]  = $CiWhere;
-                }
-            }
-        }
-        
-        // $this for chaining
-        return $this;
     }
     
     // function where_in()

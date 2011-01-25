@@ -6,4 +6,4 @@
 
 
 require_once(dirname(__FILE__) . '/../Hydrate.class.php');
-// require_once(dirname(__FILE__) . '/../Hydrate.class.1.11.php');
+// require_once(dirname(__FILE__) . '/../Hydrate.class.1.12.php');

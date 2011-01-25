@@ -6,6 +6,24 @@
       UPDATE: they already work (checked in 1.8)
 
 
+For 2.x and later:
+    - Remove getFieldName() visibility from outside - user should always use relation names to identify
+        fields in where() clauses etc. instead of prefixed field names.
+    - Reorganize code - make a better distinction between Hydrate_query and Hydrate.
+        Only use Hydrate as the master class for loading schema and stuff, and as a query factory, or
+        perhaps not even that (we could just have something like Hydrate_query::factory()).
+        And then the actual query would be built by using methods provided in Hydrate_query (the
+        actual query would be an instance of Hydrate_query and would have a link to the Hydrate
+        class it is using).
+    - Hydrate should NOT be a static class, we should be able to have several database connections
+        and a Hydrate instance for each of them.
+    - Also, we should be able to build several Hydrate_query'ies at the same time.
+    - There should be no static variables.
+    
+    - Allow write queries - make an interface for that.
+        This requires alot of thought.
+
+
 - For tests/ :
     - When exporting sql, check for an existing sql with the same contents (probably can be speeded up,
         by adding a file size check first, and only checking for contents once we found a file with the
