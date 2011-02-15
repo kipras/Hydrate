@@ -4,6 +4,11 @@
         can have parent categories (site types) which results in another relaton to node. I need to test
         for such a situation and see if it works, and if not - add this feature to Hydrate.
       UPDATE: they already work (checked in 1.8)
+    
+    - Increase performance, and write tests for that. Right now Hydrate is SLOW :/
+    
+    - Important thing for performance : Services_JSON class is SLOOOOOW. Need to replace this with something else,
+        perhaps a serialize()'d intermediate cache.
 
 
 For 2.x and later:

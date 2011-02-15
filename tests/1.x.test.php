@@ -21,7 +21,6 @@ class TestHydrate_1 extends AppTestCase
             // $this->clip1, $this->clip2,
         // );
         
-        
         $result = db_decode($hq->resultArray());
         
         $expected = Array($this->campaign);
@@ -487,7 +486,7 @@ class TestHydrate_1 extends AppTestCase
         $this->assertTrue(arrays_identical($result, $expected));
     }
     
-    // // ---------------------- ADDED IN 1.12 ----------------------
+    // ---------------------- ADDED IN 1.12 ----------------------
     
     // Test for custom field support regression, introduced in 1.10
     function testCustomField_1_10_regression___fixed_in_1_12()
@@ -611,6 +610,123 @@ class TestHydrate_1 extends AppTestCase
         
         // $this->assertTrue(arrays_identical($result, $expected));
     // }
+    
+    // ---------------------- ADDED IN 1.13 ----------------------
+    
+    function testPerformance()
+    {
+        // $this->clearSandbox();
+        
+        $created = $this->env->getTestDBDateTime();
+        
+        $maxItems = 10;
+        
+        // First - insert a crapload of elements to be hydrated by this hydration query
+        $reklama = Array(
+            "ID_uzsakovo" => "0",
+            "campaign_id" => "[campaigns.client1_company1_campaign1]",
+            "data" => $created,
+            "rodyti" => NULL,
+            "pradzios_data" => NULL,
+            "pabaigos_data" => NULL,
+            "rodyti_sekundziu" => NULL,
+            "pavadinimas" => NULL,
+            "komentaras" => NULL,
+            "c_action" => "1",
+            "add_date" => NULL,
+            "r_date" => NULL,
+            "r_user" => NULL,
+            "tipas" => NULL,
+            "status" => "1",
+            "type" => "1",
+            "approved_datetime" => NULL,
+        );
+        for ($i = 0; $i < $maxItems; $i++)
+        {
+            $reklama["__name"] = "temp_{$i}";
+            $this->env->insertItem("reklama", $reklama);
+        }
+        
+        $object = Array(
+            "__name" => "object1",
+            "user_ID" => NULL,
+            "imones_kodas" => "imones kodas", 
+            "filialas" =>  "filialas",
+            "pavadinimas" => "test objekto 1 tasko 1 pavadinimas",
+            "adresas" => NULL,
+            "tipas" => NULL,
+            "ID_grupes" => NULL,
+            "user_name" => NULL,
+            "user_psw" => NULL,
+            "add_date" => $created,
+            "r_user" => "sksads",
+            "r_date" => NULL,
+            "lokacija" => NULL,
+            "city_id" => "[cities.test1]",
+            // "status" => Campaigns::OBJECT_STATUS_DEFAULT,
+            "joomla_user_id" => "[users.object1]",
+            "payout" => "0",
+            "payout_peak" => "0",
+        );
+        for ($i = 0; $i < $maxItems; $i++)
+        {
+            $object["__name"] = "temp_{$i}";
+            $this->env->insertItem("adresatai", $object);
+        }
+        
+        $reklama_kur = Array(
+            "__name" => "clip1_object1",
+            "ID_reklamos" => "[reklama.client1_company1_campaign1_clip1]",
+            "ID_adresato" => "[adresatai.object1]",
+            "darbo_laikas_nuo" => NULL,
+            "darbo_laikas_iki" => NULL,
+            "c_action" => "1",
+            "add_date" => NULL,
+            "r_date" => NULL,
+            "r_user" => NULL,
+            "kartai" => NULL,
+            "kartai_per_diena" => NULL,
+            "status" => "0",
+        );
+        
+        for ($i = 0; $i < $maxItems; $i++)
+        {
+            for ($j = 0; $j < $maxItems; $j++)
+            {
+                $reklama_kur["__name"] = "temp_{$i}_{$j}";
+                $reklama_kur["ID_reklamos"] = "[reklama.temp_{$i}]";
+                $reklama_kur["ID_adresato"] = "[adresatai.temp_{$j}]";
+                $this->env->insertItem("reklama_kur", $reklama_kur);
+            }
+        }
+        
+        $hq = $this->CI->hydrate->start("reklama",
+            Array("reklama_kur" => Array("object"))
+        );
+        // $hq->where($hq->getFieldName($hq->hq->table, "id"), $this->campaign["id"]);
+        $hq->order_by($hq->getFieldName($hq->hq->table, "id"), "asc");
+        $hq->order_by($hq->getFieldName($hq->hq->relations["reklama_kur"], "id"), "asc");
+        $hq->order_by($hq->getFieldName($hq->hq->relations["reklama_kur"]["children"]["object"], "ID"), "asc");
+        
+        // $expectedCampaign = $this->campaign;
+        // $expectedCampaign["reklama"] = Array(
+            // $this->clip1, $this->clip2,
+        // );
+        
+        // xdebug_start_trace();
+        $start = microtime(TRUE);
+        $result = $hq->resultArray();
+        $end = microtime(TRUE);
+        // xdebug_stop_trace();
+        
+        echo $end - $start;
+        $this->assertTrue($end - $start < 0.060); // Entire query must take less than 5 miliseconds
+        
+        // e($result);
+        
+        // Clear sandbox, because we made some changes to environment in this function
+        $this->clearSandbox();
+    }
     
 }
 

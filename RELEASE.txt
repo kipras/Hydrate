@@ -1,3 +1,5 @@
+1.13.2- Additional performance improvements
+1.13  - Small performance improvements
 1.12  - Fixed another regression introduced by 1.10, this time it included custom field support
 1.11  - Fixed regression for where() clause escaping (introduced by 1.10)
 1.10  - Added some preprocessing for where() clauses - you can now do where('a !=', NULL)

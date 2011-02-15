@@ -25,6 +25,7 @@ require_once $pathToLibs . 'functions/array/arrays_diff.php';
 require_once $pathToLibs . 'functions/debug/e.php';
 require_once $pathToLibs . 'functions/debug/trace.php';
 require_once $pathToLibs . 'functions/io/recursive_directory_scan.php';
+require_once $pathToLibs . 'functions/debug/timer.php';
 
 
 
