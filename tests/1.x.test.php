@@ -720,7 +720,7 @@ class TestHydrate_1 extends AppTestCase
         // xdebug_stop_trace();
         
         echo $end - $start;
-        $this->assertTrue($end - $start < 0.060); // Entire query must take less than 5 miliseconds
+        $this->assertTrue($end - $start < 0.050); // Entire query must take less than 5 miliseconds
         
         // e($result);
         

@@ -371,11 +371,31 @@ class Hydrate_query
         
         return $relations;
     }
+    
+    function toArray()
+    {
+        return Array(
+            'count' => $this->count,
+            'table' => $this->table,
+            'relations' => $this->relations,
+            'prefixes' => $this->prefixes,
+            'select' => $this->select,
+            'join' => $this->join,
+            'where' => $this->where,
+            'where_in' => $this->where_in,
+            'order_by' => $this->order_by,
+            'limit' => $this->limit,
+            'returnNothing' => $this->returnNothing,
+        );
+    }
 }
 
 class Hydrate
 {
     const DEBUG = FALSE;
+    
+    static $profile = 'log/hydrate.profile.csv';
+    static $profileData = 'log/hydrate.profile.data/';
     
     // CI AR database object
     var $db = FALSE;
@@ -391,6 +411,25 @@ class Hydrate
     {
         if (self::DEBUG)
             e($str);
+    }
+    
+    static function profile($profileLine)
+    {
+        if (self::$profile)
+        {
+            $lineNumber = count(file(self::$profile));
+            
+            foreach ($profileLine as $k => $v)
+                if (count(explode("\n", $v)) > 1)
+                {
+                    $profileLineEntryFile = self::$profileData . $lineNumber . '.' . $k . '.txt';
+                    @file_put_contents($profileLineEntryFile, $v);
+                    $profileLine[$k] = $profileLineEntryFile;
+                }
+            
+            $profileLineString = join(';', $profileLine);
+            @file_put_contents(self::$profile, $profileLineString . "\n", FILE_APPEND);
+        }
     }
     
     
@@ -914,23 +953,36 @@ class Hydrate
     // Hydrates a result array set according to a given Hydrate query
     function resultArray()
     {
+        $profile = Array();
+        
+        $profile[] = date('Y-m-d H:i:s');
+        
+        $profile[] = $setQueryStart = microtime(TRUE);
         $this->setQuery();
+        $profile[] = $setQueryEnd = microtime(TRUE);
+        $profile[] = $setQueryEnd - $setQueryStart;
+        $profile[] = print_r($this->hq->toArray(), TRUE);
         
         if ($this->hq->returnNothing === TRUE)
         {
+            self::profile($profile);
             return Array();
         }
         
         $schema = $this->getSchema();
         
         $hq             = $this->hq;
+        
+        $profile[] = $result_arrayStart = microtime(TRUE);
         $results_array  = $this->db->get()->result_array();
+        $profile[] = $result_arrayEnd = microtime(TRUE);
+        $profile[] = $result_arrayEnd - $result_arrayStart;
         
         $hydratedArray  = Array();
         
         $localTable     = $schema[$hq->table["name"]];
         $tablePrefix    = $hq->table["prefix"];
-        
+        $profile[] = $hydrateStart = microtime(TRUE);
         foreach ($results_array as $row)
         {
             $hydratedRow        = Array();
@@ -947,6 +999,10 @@ class Hydrate
             
             $hydratedArray[$hydrateRes["rowIndex"]] = $hydratedRow;
         }
+        $profile[] = $hydrateEnd = microtime(TRUE);
+        $profile[] = $hydrateEnd - $hydrateStart;
+        $profile[] = end($this->db->queries);
+        self::profile($profile);
         
         return $hydratedArray;
     }

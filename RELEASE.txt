@@ -1,4 +1,4 @@
-1.13.2- Additional performance improvements
+1.13.1- Additional performance improvements
 1.13  - Small performance improvements
 1.12  - Fixed another regression introduced by 1.10, this time it included custom field support
 1.11  - Fixed regression for where() clause escaping (introduced by 1.10)
@@ -17,6 +17,7 @@
         - You can also put the schema in the current.schema file directly, if you want (as opposed to
             only putting a pointer to the current schema file there. Putting a pointer also works.
 
+1.2.3 - Hydration profiling
 1.2.2 - Fixed an error on MS SQL, which would come up, when there is limit() and more than one order_by()
 1.2.1 - Allows to pass Hydrate->where() raw SQL queries in parentheses, i.e. Hydrate->where("(x AND y)")
 1.2   - order_by() can now be called multiple times, to order by several fields
