@@ -17,6 +17,7 @@
         - You can also put the schema in the current.schema file directly, if you want (as opposed to
             only putting a pointer to the current schema file there. Putting a pointer also works.
 
+1.2.4 - Same as 1.13 (Small performance improvements), but for 1.2 branch
 1.2.3 - Hydration profiling
 1.2.2 - Fixed an error on MS SQL, which would come up, when there is limit() and more than one order_by()
 1.2.1 - Allows to pass Hydrate->where() raw SQL queries in parentheses, i.e. Hydrate->where("(x AND y)")

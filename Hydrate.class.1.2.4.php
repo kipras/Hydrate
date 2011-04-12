@@ -3,6 +3,7 @@
 /*
  * Version log:
  *
+ * 1.2.3    - Added profiling capabilities
  * 1.2.2    - Fixed an error on MS SQL, which would come up, when there is limit() and more than one order_by()
  * 1.2.1    - Allows to pass Hydrate->where() raw SQL queries in parentheses, i.e. Hydrate->where("(x AND y)")
  * 1.2:     - order_by() can now be called multiple times, to order by several fields
@@ -396,6 +397,8 @@ class Hydrate
     
     static $profile = 'log/hydrate.profile.csv';
     static $profileData = 'log/hydrate.profile.data/';
+    // static $profile = FALSE;
+    // static $profileData = FALSE;
     
     // CI AR database object
     var $db = FALSE;
@@ -960,7 +963,7 @@ class Hydrate
         $profile[] = $setQueryStart = microtime(TRUE);
         $this->setQuery();
         $profile[] = $setQueryEnd = microtime(TRUE);
-        $profile[] = $setQueryEnd - $setQueryStart;
+        $profile[] = sprintf("%014.10f", $setQueryEnd - $setQueryStart);
         $profile[] = print_r($this->hq->toArray(), TRUE);
         
         if ($this->hq->returnNothing === TRUE)
@@ -976,7 +979,7 @@ class Hydrate
         $profile[] = $result_arrayStart = microtime(TRUE);
         $results_array  = $this->db->get()->result_array();
         $profile[] = $result_arrayEnd = microtime(TRUE);
-        $profile[] = $result_arrayEnd - $result_arrayStart;
+        $profile[] = sprintf("%014.10f", $result_arrayEnd - $result_arrayStart);
         
         $hydratedArray  = Array();
         
@@ -985,42 +988,30 @@ class Hydrate
         $profile[] = $hydrateStart = microtime(TRUE);
         foreach ($results_array as $row)
         {
-            $hydratedRow        = Array();
-            
-            $hydrateRes         = $this->hydrateRow($row, $localTable, $tablePrefix, $hq->table, $hydratedArray);
-            $hydratedArray      = $hydrateRes["array"];
-            $hydratedRow        = $hydratedArray[$hydrateRes["rowIndex"]];
-            
-            // $hydratedRowIndex   = 
-            // $hydratedRow        = $hydratedArray[$hydratedRowIndex];
+            $hydratedRow        =& $this->hydrateRow($row, $localTable, $tablePrefix, $hq->table, $hydratedArray);
             
             // Now recursively Hydrate relationships
-            $hydratedRow = $this->hydrateRelations($hq->relations, $row, $hydratedRow, $localTable, $tablePrefix);
+            $this->hydrateRelations($schema, $hq->relations, $row, $hydratedRow, $localTable, $tablePrefix, $backrefs);
             
-            $hydratedArray[$hydrateRes["rowIndex"]] = $hydratedRow;
+            unset($hydratedRow);
         }
         $profile[] = $hydrateEnd = microtime(TRUE);
-        $profile[] = $hydrateEnd - $hydrateStart;
+        $profile[] = sprintf("%014.10f", $hydrateEnd - $hydrateStart);
         $profile[] = end($this->db->queries);
         self::profile($profile);
         
         return $hydratedArray;
     }
     
-    function hydrateRow($rowData, $rowTable, $rowTablePrefix, $hqRelation, $array)
+    function &hydrateRow($rowData, $rowTable, $rowTablePrefix, $hqRelation, &$array)
     {
         if ($rowTable["primary"] === FALSE)
             Hydrate_error::show( __METHOD__,
                                 "trying to hydrate a row of a table, which "
                               . "does not have a one-field Primary Key.");
-        // $PKFields = Array();
-        // foreach ($rowTable["primary"] as $PKf)
-            // $PKFields[] = "{$rowTablePrefix}_{$PKf}";
-        // $PKField = "{$rowTablePrefix}_{$rowTable["primary"]}";
-        // $rowId      = $rowData[$PKField];
         
+        $hydratedRow = Array();
         $foundExisting = FALSE;
-        $rowIndex = 0;
         foreach ($array as $k => $v)
         {
             // Hydration is done, by checking for a match in all of the Primary Key fields
@@ -1033,11 +1024,7 @@ class Hydrate
                 }
             
             if ($allPKFieldsMatch)
-            {
-                $foundExisting  = TRUE;
-                $rowIndex       = $k;
-                break;
-            }
+                return $array[$k];
         }
         
         if ($foundExisting === FALSE)
@@ -1049,8 +1036,9 @@ class Hydrate
             foreach ($hqRelation["fields"] as $alias => $field)
                 $hydratedRow[$alias]  = $rowData["{$rowTablePrefix}_{$alias}"];
             
-            $rowIndex   = count($array);
-            $array[]    = $hydratedRow;
+            $array[]    =& $hydratedRow;
+            
+            return $hydratedRow;
         }
         
         return Array(
@@ -1061,10 +1049,8 @@ class Hydrate
         // return $rowIndex;
     }
     
-    function hydrateRelations($relations, $rowData, $hydratedRow, $localTable, $localTablePrefix)
+    function hydrateRelations($schema, $relations, $rowData, &$hydratedRow, $localTable, $localTablePrefix, &$backrefs = Array())
     {
-        $schema = $this->getSchema();
-        
         foreach ($relations as $rel)
         {
             $hydratedRelationsRow = Array();
@@ -1122,8 +1108,7 @@ class Hydrate
                         $hydratedRow[$rel["name"]] = Array();
                     
                     // Hydrate into $hydratedRow[$rel["name"]], using data from $row
-                    $hydrateRes = $this->hydrateRow($rowData, $foreignTable, $relationPrefix, $rel, $hydratedRow[$rel["name"]]);
-                    $hydratedRow[$rel["name"]] = $hydrateRes["array"];
+                    $this->hydrateRow($rowData, $foreignTable, $relationPrefix, $rel, $hydratedRow[$rel["name"]]);
                     if ($relation["type"] == "one")
                         $hydratedRow[$rel["name"]] = $hydratedRow[$rel["name"]][0];
                 }
@@ -1134,14 +1119,12 @@ class Hydrate
             {
                 // for *-to-one relations, there might be nothing related to this row, in that case - dont do the recursion
                 if (isset($hydratedRow[$rel["name"]]))
-                    $hydratedRow[$rel["name"]] = $this->hydrateRelations($rel["children"], $rowData, $hydratedRow[$rel["name"]], $foreignTable, $relationPrefix);
+                    $this->hydrateRelations($schema, $rel["children"], $rowData, $hydratedRow[$rel["name"]], $foreignTable, $relationPrefix, $backrefs);
             }
             else
                 foreach ($hydratedRow[$rel["name"]] as $k => $v)
-                    $hydratedRow[$rel["name"]][$k] = $this->hydrateRelations($rel["children"], $rowData, $hydratedRow[$rel["name"]][$k], $foreignTable, $relationPrefix);
+                    $this->hydrateRelations($schema, $rel["children"], $rowData, $hydratedRow[$rel["name"]][$k], $foreignTable, $relationPrefix, $backrefs);
         }
-        
-        return $hydratedRow;
     }
     
 }
