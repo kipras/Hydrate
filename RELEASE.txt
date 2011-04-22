@@ -1,4 +1,4 @@
-1.13.1- Additional performance improvements
+1.14  - MAJOR performance improvements (for both large result sets and complex hydration hierarchies).
 1.13  - Small performance improvements
 1.12  - Fixed another regression introduced by 1.10, this time it included custom field support
 1.11  - Fixed regression for where() clause escaping (introduced by 1.10)
@@ -17,6 +17,8 @@
         - You can also put the schema in the current.schema file directly, if you want (as opposed to
             only putting a pointer to the current schema file there. Putting a pointer also works.
 
+
+1.2.5 - Same as 1.14 (MAJOR performance improvements), but for 1.2 branch
 1.2.4 - Same as 1.13 (Small performance improvements), but for 1.2 branch
 1.2.3 - Hydration profiling
 1.2.2 - Fixed an error on MS SQL, which would come up, when there is limit() and more than one order_by()

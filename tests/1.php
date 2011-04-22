@@ -1,6 +1,6 @@
 <?php
 
-require_once dirname(__FILE__) . '/../../../json_1_1/json/json.php';
+require_once dirname(__FILE__) . '/../../../json/json_1_1/json/json.php';
 
 require_once(dirname(__FILE__) . '/1.x.version_to_test.php');
 

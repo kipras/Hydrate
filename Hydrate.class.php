@@ -357,6 +357,7 @@ class Hydrate_schema
                                 "local" => $rel["foreign"],
                                 "foreign" => $rel["local"],
                             );
+                            self::isManyToMany($foreignTable["relations"][$table_k]);
                             
                             // Save
                             $schema[$foreignTableName] = $foreignTable;
@@ -384,9 +385,12 @@ class Hydrate_schema
     }
     
     // Checks if relation is many-to-many
-    static function isManyToMany($rel)
+    static function isManyToMany(&$rel)
     {
-        return $rel["type"] == "many" && !empty($rel["refTable"]) ? TRUE : FALSE;
+        if (!isset($rel["manyToMany"]))
+            $rel["manyToMany"] = $rel["type"] == "many" && !empty($rel["refTable"]) ? TRUE : FALSE;
+        
+        return $rel["manyToMany"];
     }
 }
 
@@ -1201,162 +1205,201 @@ class Hydrate
             return Array();
         }
         
-        $schema = $this->getSchema();
+        $result_array  = self::$db->get()->result_array();
         
-        $hq             = $this->hq;
-        $result         = self::$db->get();
-        if ($result === FALSE)
-        {
-            $query = end(self::$db->queries);
-            Hydrate_error::show("DB", self::$db->_error_message() . "<br />\n<br />\nSQL:<br />\n{$query}");
-        }
-        
-        $results_array  = $result->result_array();
-        
-        $hydratedArray  = Array();
-        
-        $localTable     = $schema[$hq->table["name"]];
-        $tablePrefix    = $hq->table["prefix"];
-        
-        foreach ($results_array as $row)
-        {
-            $hydratedRow        =& $this->hydrateRow($row, $localTable, $tablePrefix, $hq->table, $hydratedArray);
-            
-            // Now recursively Hydrate relationships
-            $this->hydrateRelations($schema, $hq->relations, $row, $hydratedRow, $localTable, $tablePrefix, $backrefs);
-            
-            unset($hydratedRow);
-        }
+        $hydratedArray = $this->hydrateResultArray($result_array, $profile);
         
         return $hydratedArray;
     }
     
-    function &hydrateRow($rowData, $rowTable, $rowTablePrefix, $hqRelation, &$array)
+    function hydrateResultArray($result_array, &$profile = Array())
     {
-        if ($rowTable["primary"] === FALSE)
-            Hydrate_error::show( __METHOD__,
-                                "trying to hydrate a row of a table, which "
-                              . "does not have a one-field Primary Key.");
+        $schema = $this->getSchema();
+        $hq             = $this->hq;
         
-        $hydratedRow = Array();
-        $foundExisting = FALSE;
+        $localTable     = $schema[$hq->table["name"]];
         
-        foreach ($array as $k => $v)
+        // Do Hydration:
+        
+        // STEP 1 : get a list of all tables involved
+        $t = Array(
+            "tableName" => $hq->table["name"],
+            "table" => $localTable,
+            "prefix" => $hq->table["prefix"],
+            "relations" => $hq->relations,
+            "relation" => $hq->table,
+        );
+        $fields = array_keys($t['table']['columns']);
+        foreach ($hq->relations as $childRelationField => $childRelation)
+            $fields[] = $childRelationField;
+        $t['fields'] = $fields;
+        
+        if (!empty($hq->relations))
         {
-            // Hydration is done, by checking for a match in all of the Primary Key fields
-            $allPKFieldsMatch = TRUE;
-            foreach ($rowTable["primary"] as $PKf)
-                if ($v[$PKf] != $rowData["{$rowTablePrefix}_{$PKf}"])
-                {
-                    $allPKFieldsMatch = FALSE;
-                    break;
-                }
-            
-            if ($allPKFieldsMatch)
-                return $array[$k];
+            $t['relationsTables'] = Array();
+            $this->getTablesFromRelations($schema, $t['relationsTables'], $localTable, $hq->relations, TRUE);  
         }
         
-        foreach ($rowTable["columns"] as $colName => $v)
-            $hydratedRow[$colName]  = $rowData["{$rowTablePrefix}_{$colName}"];
+        $tables = Array($t);
+        $this->getTablesFromRelations($schema, $tables, $localTable, $hq->relations);
         
-        // Additional, user-specified fields
-        foreach ($hqRelation["fields"] as $alias => $field)
-            $hydratedRow[$alias]  = $rowData["{$rowTablePrefix}_{$alias}"];
+        // STEP 2 : Extract unique rows for all tables involved
+        $uniqueRowsWithPK = Array();
         
-        $array[]    =& $hydratedRow;
+        // Here we will store the links to the unique rows for quick lookup in this extraction step
+        $uniqueRowsByPK = Array();
+        foreach ($result_array as $row)
+        {
+            foreach ($tables as $t)
+            {
+                // Extract primary key field values
+                $pk = Array();
+                foreach ($t["table"]["primary"] as $PKf)
+                    $pk[$PKf] = $row["{$t['prefix']}_{$PKf}"];
+                
+                // Now go through each of already extracted unique rows, and check if it is already extracted
+                $alreadyExtracted = FALSE;
+                
+                // Check if this row is already extracted
+                $lookup =& $uniqueRowsByPK[$t["prefix"]];
+                foreach ($t["table"]["primary"] as $PKf)
+                {
+                    $lookup =& $lookup[$row["{$t['prefix']}_{$PKf}"]];
+                    if (empty($lookup))
+                        break;
+                }
+                
+                $alreadyExtracted = empty($lookup) ? FALSE : TRUE;
+                unset($lookup);
+                
+                if ($alreadyExtracted == FALSE)
+                {
+                    // Extract all fields of this row
+                    $newUniqueRow = Array();
+                    
+                    foreach ($t["table"]["columns"] as $colName => $v)
+                        $newUniqueRow[$colName]  = $row["{$t['prefix']}_{$colName}"];
+                    
+                    // Additional, user-specified fields
+                    if (!empty($t["relation"]["fields"]))
+                        foreach ($t["relation"]["fields"] as $alias => $field)
+                            $newUniqueRow[$alias]  = $row["{$t['prefix']}_{$alias}"];
+                    
+                    $uniqueRow = Array(
+                        "pk" => $pk,
+                        // "pkHash" => $pkHash,
+                        "row" => $newUniqueRow,
+                        "rawRow" => $row,
+                    );
+                    $uniqueRowsWithPK[$t["prefix"]][] = $uniqueRow;
+                    
+                    // Store quick lookup value
+                    $lookup =& $uniqueRowsByPK[$t["prefix"]];
+                    foreach ($t["table"]["primary"] as $PKf)
+                    {
+                        if (empty($lookup[$row["{$t['prefix']}_{$PKf}"]]))
+                            $lookup[$row["{$t['prefix']}_{$PKf}"]] = Array();
+                        
+                        $lookup =& $lookup[$row["{$t['prefix']}_{$PKf}"]];
+                    }
+                    $lookup = $uniqueRow;
+                    unset($lookup);
+                }
+            }
+        }
         
-        return $hydratedRow;
+        // STEP 3 : Link the relationships between the unique rows
+        foreach ($tables as $t)
+        {
+            if (isset($uniqueRowsWithPK[$t["prefix"]]))
+            {
+                foreach ($uniqueRowsWithPK[$t["prefix"]] as &$unqRow)
+                {
+                    foreach ($t["relations"] as $rel)
+                    {
+                        $relSchema = $schema[$t["tableName"]]["relations"][$rel["name"]];
+                        $manyToMany = Hydrate_schema::isManyToMany($relSchema);
+                        foreach ($uniqueRowsWithPK[$rel['prefix']] as &$foreignUnqRow)
+                        {
+                            $doHydrate = FALSE;
+                            if ($manyToMany)
+                            {
+                                if ($unqRow["row"][$t["table"]["primary"][0]] == $foreignUnqRow["rawRow"]["{$rel["refTablePrefix"]}_{$relSchema["local"]}"])
+                                    $doHydrate = TRUE;
+                            }
+                            else
+                            {
+                                if ($unqRow["row"][$relSchema["local"]] == $foreignUnqRow["row"][$relSchema["foreign"]])
+                                    $doHydrate = TRUE;
+                            }
+                            
+                            if ($doHydrate)
+                            {
+                                if ($relSchema["type"] == "one")
+                                {
+                                    $unqRow["row"][$rel["name"]] =& $foreignUnqRow["row"];
+                                    break; // We are done with this relation, for this unique row
+                                }
+                                
+                                $unqRow["row"][$rel["name"]][] =& $foreignUnqRow["row"];
+                            }
+                        }
+                        unset($foreignUnqRow);
+                        
+                        // For *-to-many relations, if there are no foreign items - there has to be an empty array
+                        if (empty($unqRow["row"][$rel["name"]]) AND $relSchema['type'] == 'many')
+                            $unqRow["row"][$rel["name"]] = Array();
+                    }
+                }
+                unset($unqRow);
+            }
+        }
+        
+        // STEP 4 : Extract only row data from the above structure
+        $uniqueRows = Array();
+        if (isset($uniqueRowsWithPK[$hq->table["prefix"]]))
+            foreach ($uniqueRowsWithPK[$hq->table["prefix"]] as $row)
+                $uniqueRows[] = $row["row"];
+        
+        $result = $uniqueRows;
+        
+        return $result;
     }
     
-    function hydrateRelations($schema, $relations, $rowData, &$hydratedRow, $localTable, $localTablePrefix, &$backrefs = Array())
+    function getTablesFromRelations($schema, &$tables, $localTable, $relations, $assignByTableName = FALSE)
     {
         foreach ($relations as $rel)
         {
-            $hydratedRelationsRow = Array();
+            $relationSchema = $localTable["relations"][$rel["name"]];
             
-            $relationPrefix = $rel["prefix"];
+            $t = Array(
+                "tableName" => $relationSchema["table"],
+                "table" => $schema[$relationSchema["table"]],
+                "prefix" => $rel["prefix"],
+                "relations" => $rel["children"],
+                "relation" => $rel,
+            );
             
-            $relation = $localTable["relations"][$rel["name"]];
+            $fields = array_keys($t['table']['columns']);
+            foreach ($rel["children"] as $childRelationField => $childRelation)
+                $fields[] = $childRelationField;
+            foreach ($t['relation']['fields'] as $hydratedFieldName => $rawFieldName)
+                $fields[] = $hydratedFieldName;
+            $t['fields'] = $fields;
             
-            $foreignTableName   = $relation["table"];
-            $foreignTable       = $schema[$foreignTableName];
-            
-            // If this is a *-to-many relation, and there isn't yet a single row for it
-            // in this Hydrated row - enter an empty array (there should always be
-            // an array for *-to-many relations in Hydrated result sets)
-            if ($relation["type"] == "many" && ! isset($hydratedRow[$rel["name"]]))
-                $hydratedRow[$rel["name"]] = Array();
-            
-            // If this is a *-to-one relation and we have already entered a result for it -
-            // no need to Hydrate
-            if ($relation["type"] != "one" OR empty($hydratedRow[$rel["name"]]))
+            if (!empty($rel["children"]))
             {
-                // Only Hydrate if there is a related table entry in the result set
-                // (foreign primary key fields !== NULL)
-                $doHydrate = FALSE;
-                $PKFieldsNull = FALSE;
-                
-                foreach ($foreignTable["primary"] as $PKField)
-                    if ($rowData["{$relationPrefix}_{$PKField}"] === NULL)
-                    {
-                        $PKFieldsNull = TRUE;
-                        break;
-                    }
-                
-                if ($PKFieldsNull == FALSE)
-                {
-                    // We must make sure, that we are assigning foreign rows to a correct local row.
-                    // We do that by checking local row id in the $hydratedRow array.
-                    if (Hydrate_schema::isManyToMany($relation))
-                    {
-                        if ($rowData["{$rel["refTablePrefix"]}_{$relation["local"]}"] == $hydratedRow[$localTable["primary"][0]])
-                            $doHydrate = TRUE;
-                    }
-                    else
-                    {
-                        if ($rowData["{$rel["prefix"]}_{$relation["foreign"]}"] == $hydratedRow[$relation["local"]])
-                            $doHydrate = TRUE;
-                    }
-                }
-                
-                if ($doHydrate)
-                {
-                    // if (empty($backrefs[$localTablePrefix][$rowData["{$localTablePrefix}_{$localTable["primary"][0]}"]][$relationPrefix][$rowData["{$relationPrefix}_{$foreignTable["primary"][0]}"]]))
-                    // {
-                        // This is for *-to-one relations, for *-to-many relations we already
-                        // created an empty array above
-                        if (!isset($hydratedRow[$rel["name"]]))
-                            $hydratedRow[$rel["name"]] = Array();
-                        
-                        // Hydrate into $hydratedRow[$rel["name"]], using data from $row
-                        // $hydrateRes = $this->hydrateRow($rowData, $foreignTable, $relationPrefix, $rel, $hydratedRow[$rel["name"]]);
-                        // $hydratedRow[$rel["name"]] = $hydrateRes["array"];
-                        $this->hydrateRow($rowData, $foreignTable, $relationPrefix, $rel, $hydratedRow[$rel["name"]]);
-                        if ($relation["type"] == "one")
-                            $hydratedRow[$rel["name"]] = $hydratedRow[$rel["name"]][0];
-                        
-                        // $backrefs[$localTablePrefix][$rowData["{$localTablePrefix}_{$localTable["primary"][0]}"]][$relationPrefix][$rowData["{$relationPrefix}_{$foreignTable["primary"][0]}"]] = TRUE;
-                        // // e($backrefs);
-                    // }
-                    // else
-                        // e("A");
-                }
+                $t['relationsTables'] = Array();
+                $this->getTablesFromRelations($schema, $t['relationsTables'], $schema[$relationSchema["table"]], $rel["children"], TRUE);  
             }
             
-            // Do recursion here
-            if ($relation["type"] == "one")
-            {
-                // for *-to-one relations, there might be nothing related to this row, in that case - dont do the recursion
-                if (isset($hydratedRow[$rel["name"]]))
-                    // $hydratedRow[$rel["name"]] = $this->hydrateRelations($rel["children"], $rowData, $hydratedRow[$rel["name"]], $foreignTable, $relationPrefix);
-                    $this->hydrateRelations($schema, $rel["children"], $rowData, $hydratedRow[$rel["name"]], $foreignTable, $relationPrefix, $backrefs);
-            }
+            if ($assignByTableName)
+                $tables[$rel["name"]] = $t;
             else
-                foreach ($hydratedRow[$rel["name"]] as $k => $v)
-                    // $hydratedRow[$rel["name"]][$k] = $this->hydrateRelations($rel["children"], $rowData, $hydratedRow[$rel["name"]][$k], $foreignTable, $relationPrefix);
-                    $this->hydrateRelations($schema, $rel["children"], $rowData, $hydratedRow[$rel["name"]][$k], $foreignTable, $relationPrefix, $backrefs);
+                $tables[] = $t;
+            
+            if (!empty($rel["children"]))
+                $this->getTablesFromRelations($schema, $tables, $schema[$relationSchema["table"]], $rel["children"]);  
         }
-        
-        // return $hydratedRow;
     }
 }

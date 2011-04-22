@@ -719,13 +719,92 @@ class TestHydrate_1 extends AppTestCase
         $end = microtime(TRUE);
         // xdebug_stop_trace();
         
-        echo $end - $start;
-        $this->assertTrue($end - $start < 0.050); // Entire query must take less than 5 miliseconds
+        $this->assertTrue($end - $start < 0.050); // Entire query must take less than 50 miliseconds
         
         // e($result);
         
         // Clear sandbox, because we made some changes to environment in this function
         $this->clearSandbox();
+    }
+    
+    // Test performance of complex hydrations, with big result sets
+    // In this test, we will manually supply Hydrate with a HUGE result set (3363 rows),
+    // and check the performance of hydration alone
+    function testPerformanceWithCustomResult()
+    {
+
+        // The raw query that we are testing against:
+        //
+        // SELECT a.id AS a_id, a.company_id AS a_company_id, a.created AS a_created, a.approved_datetime AS a_approved_datetime, a.name AS a_name, a.status AS a_status, a.daily_budget_limit AS a_daily_budget_limit, a.track_objects AS a_track_objects, a.has_daily_budget AS a_has_daily_budget, b.id AS b_id, b.user_id AS b_user_id, b.status AS b_status, b.name AS b_name, b.address AS b_address, b.company_code AS b_company_code, b.pvm_code AS b_pvm_code, b.phone AS b_phone, b.has_funds AS b_has_funds, c.id AS c_id, c.username AS c_username, c.name AS c_name, c.email AS c_email, c.emails_messages AS c_emails_messages, c.messages_low_funds AS c_messages_low_funds, c.messages_out_of_funds AS c_messages_out_of_funds, c.messages_accepted_campaigns AS c_messages_accepted_campaigns, c.messages_accepted_payments AS c_messages_accepted_payments, c.messages_new_features AS c_messages_new_features, c.messages_new_bills AS c_messages_new_bills, c.type AS c_type, d.id AS d_id, d.campaign_id AS d_campaign_id, d.date_from AS d_date_from, d.date_to AS d_date_to, d.views AS d_views, d.amount AS d_amount, e.ID AS e_ID, e.ID_uzsakovo AS e_ID_uzsakovo, e.campaign_id AS e_campaign_id, e.data AS e_data, e.rodyti AS e_rodyti, e.pradzios_data AS e_pradzios_data, e.pabaigos_data AS e_pabaigos_data, e.rodyti_sekundziu AS e_rodyti_sekundziu, e.pavadinimas AS e_pavadinimas, e.komentaras AS e_komentaras, e.c_action AS e_c_action, e.add_date AS e_add_date, e.r_date AS e_r_date, e.r_user AS e_r_user, e.tipas AS e_tipas, e.status AS e_status, e.type AS e_type, e.approved_datetime AS e_approved_datetime, f.id AS f_id, f.ID_reklamos AS f_ID_reklamos, f.ID_adresato AS f_ID_adresato, f.darbo_laikas_nuo AS f_darbo_laikas_nuo, f.darbo_laikas_iki AS f_darbo_laikas_iki, f.c_action AS f_c_action, f.add_date AS f_add_date, f.r_date AS f_r_date, f.r_user AS f_r_user, f.kartai AS f_kartai, f.kartai_per_diena AS f_kartai_per_diena, f.status AS f_status, g.ID AS g_ID, g.user_ID AS g_user_ID, g.imones_kodas AS g_imones_kodas, g.filialas AS g_filialas, g.pavadinimas AS g_pavadinimas, g.adresas AS g_adresas, g.tipas AS g_tipas, g.ID_grupes AS g_ID_grupes, g.user_name AS g_user_name, g.user_psw AS g_user_psw, g.add_date AS g_add_date, g.r_user AS g_r_user, g.r_date AS g_r_date, g.lokacija AS g_lokacija, g.city_id AS g_city_id, g.joomla_user_id AS g_joomla_user_id, g.payout AS g_payout, g.payout_peak AS g_payout_peak, h.ID AS h_ID, h.pavadinimas AS h_pavadinimas, h.add_date AS h_add_date, i.ID_adresato AS i_ID_adresato, i.ID_lokacijos AS i_ID_lokacijos, j.id AS j_id, j.region_id AS j_region_id, j.name AS j_name
+        // FROM campaigns AS a (NOLOCK)
+        // LEFT JOIN companies AS b (NOLOCK) ON b.id=a.company_id
+        // LEFT JOIN users AS c (NOLOCK) ON c.id=b.user_id
+        // LEFT JOIN statistics_calendar AS d (NOLOCK) ON d.campaign_id=a.id AND d.date_from IS NULL AND d.date_to IS NULL
+        // LEFT JOIN reklama AS e (NOLOCK) ON e.campaign_id=a.id
+        // LEFT JOIN reklama_kur AS f (NOLOCK) ON f.ID_reklamos=e.ID
+        // LEFT JOIN adresatai AS g (NOLOCK) ON g.ID=f.ID_adresato
+        // LEFT JOIN adresato_lokacijos AS i (NOLOCK) ON i.ID_adresato=g.ID
+        // LEFT JOIN lokacijos AS h (NOLOCK) ON i.ID_lokacijos=h.ID
+        // LEFT JOIN cities AS j (NOLOCK) ON j.id=g.city_id
+        // WHERE a.id IN (1) AND a.status IN (1, 2, 3, 4, 5)
+        // ORDER BY a.status asc, a.name asc
+        
+        
+        // Form the query
+        $hq = $this->CI->hydrate->start(
+            "campaigns",
+            Array(
+                "company" => Array("user"),
+                "statistics_calendar" => Array(),
+                "reklama" => Array("reklama_kur" => Array("object" => Array("types", "city"))),
+            )
+        );
+        $hq->where('id', Array(1));
+        $hq->where('status', Array(1, 2, 3, 4, 5));
+        $hq->hq->relations["statistics_calendar"]["query"]["statistics_calendar.date_from"] = NULL;
+        $hq->hq->relations["statistics_calendar"]["query"]["statistics_calendar.date_to"] = NULL;
+        $hq->order_by('status', 'asc');
+        $hq->order_by('name', 'asc');
+        
+        $hq->hq->relations["statistics_calendar"]["query"]["statistics_calendar.date_from"] = NULL;
+        $hq->hq->relations["statistics_calendar"]["query"]["statistics_calendar.date_to"] = NULL;
+        
+        $hq->setQuery();
+        
+        // Supply Hydrate with the result and do hydration. The supplied result set conforms to the
+        // query we formed above
+        require dirname(__FILE__) . '/data/hydrate.PerformanceWithCustomResult.php';
+        
+        $start = microtime(TRUE);
+        $result = $hq->hydrateResultArray($result_array);
+        $time = microtime(TRUE) - $start;
+        
+        // Cleanup CI AR stuff
+        Hydrate::$db->_reset_select();
+        
+        // e($time);
+        
+        // print_r($result);
+        
+        $this->assertTrue($time < 1.5 ? TRUE : FALSE);
+    }
+    
+    function testNoResults()
+    {
+        $hq = $this->CI->hydrate->start("campaigns",
+            Array("reklama" => Array("reklama_kur" => Array("object")))
+        );
+        $hq->where('id', -1);
+        
+        $result = db_decode($hq->resultArray());
+        
+        $expected = Array();
+        
+        // e($result);
+        
+        // e($expected);
+        
+        $this->assertTrue(arrays_identical($result, $expected, TRUE));
     }
     
 }
