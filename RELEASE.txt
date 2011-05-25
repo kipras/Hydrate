@@ -18,6 +18,9 @@
             only putting a pointer to the current schema file there. Putting a pointer also works.
 
 
+1.2.7 - Support for using a mapped relation for type "one". Used for some backwards compatibility.
+            But in general you should not need this functionality.
+1.2.6 - Support for loading schema file from a custom folder
 1.2.5 - Same as 1.14 (MAJOR performance improvements), but for 1.2 branch
 1.2.4 - Same as 1.13 (Small performance improvements), but for 1.2 branch
 1.2.3 - Hydration profiling
