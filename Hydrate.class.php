@@ -1319,7 +1319,7 @@ class Hydrate
                             $manyToManyRelationValues[$t['prefix']][$row["{$t['prefix']}_{$PKf}"]][$rel["prefix"]] = Array();
                         
                         if ($row["{$rel["refTablePrefix"]}_{$relSchema["foreign"]}"] !== NULL)
-                        $manyToManyRelationValues[$t['prefix']][$row["{$t['prefix']}_{$PKf}"]][$rel["prefix"]][] = $row["{$rel["refTablePrefix"]}_{$relSchema["foreign"]}"];
+                            $manyToManyRelationValues[$t['prefix']][$row["{$t['prefix']}_{$PKf}"]][$rel["prefix"]][] = $row["{$rel["refTablePrefix"]}_{$relSchema["foreign"]}"];
                     }
                 }
             }
