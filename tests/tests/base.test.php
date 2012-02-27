@@ -696,7 +696,9 @@ class TestHydrate_base extends AppTestCase
         $hq->where('id', Array(
             $this->campaign1['id'],
             $this->campaign2['id'],
+            $this->campaign3['id'],
         ));
+        $hq->order_by("id", "asc");
         $hq->order_by("objects.ID", "asc");
         
         $result = db_decode($hq->resultArray());
@@ -714,9 +716,13 @@ class TestHydrate_base extends AppTestCase
         $expected[] = $this->campaign2;
         unset($expected[1]["__name"]);
         $expected[1]["objects"] = Array(
-            $this->object1
+            $this->object1,
         );
         unset($expected[1]["objects"][0]["__name"]);
+        
+        $expected[] = $this->campaign3;
+        unset($expected[2]["__name"]);
+        $expected[2]["objects"] = Array();
         
         // e($result);
         

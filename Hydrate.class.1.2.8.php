@@ -1100,7 +1100,13 @@ class Hydrate
                     $relSchema = $schema[$t["tableName"]]["relations"][$rel["name"]];
                     $relationUsesMap = Hydrate_schema::relationUsesMap($relSchema);
                     if ($relationUsesMap)
+                    {
+                        if (! isset($manyToManyRelationValues[$t['prefix']][$row["{$t['prefix']}_{$PKf}"]][$rel["prefix"]]))
+                            $manyToManyRelationValues[$t['prefix']][$row["{$t['prefix']}_{$PKf}"]][$rel["prefix"]] = Array();
+                        
+                        if ($row["{$rel["refTablePrefix"]}_{$relSchema["foreign"]}"] !== NULL)
                         $manyToManyRelationValues[$t['prefix']][$row["{$t['prefix']}_{$PKf}"]][$rel["prefix"]][] = $row["{$rel["refTablePrefix"]}_{$relSchema["foreign"]}"];
+                    }
                 }
             }
         }

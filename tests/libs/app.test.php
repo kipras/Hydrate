@@ -14,6 +14,7 @@ class AppTestCase extends UnitTestCase
     var $company;
     var $campaign1;
     var $campaign2;
+    var $campaign3;
     var $campaignObjectMap;
     var $clip1;
     var $clip2;
@@ -54,6 +55,7 @@ class AppTestCase extends UnitTestCase
         $this->company = $this->env->getInsertedItem("companies", "client1_company1");
         $this->campaign1 = $this->env->getInsertedItem("campaigns", "client1_company1_campaign1");
         $this->campaign2 = $this->env->getInsertedItem("campaigns", "client1_company1_campaign2");
+        $this->campaign3 = $this->env->getInsertedItem("campaigns", "client1_company1_campaign3");
         $this->campaignObjectMap = $this->env->getInsertedItem("campaigns_objects_map", "campaign1_object1");
         
         $this->clip1 = $this->env->getInsertedItem("reklama", "client1_company1_campaign1_clip1");
