@@ -391,7 +391,7 @@ class Hydrate_schema
             $rel["manyToMany"] = $rel["type"] == "many" && !empty($rel["refTable"]) ? TRUE : FALSE;
         
         return $rel["manyToMany"];
-    }
+    } 
 }
 
 class Hydrate_query
@@ -1246,6 +1246,8 @@ class Hydrate
         // STEP 2 : Extract unique rows for all tables involved
         $uniqueRowsWithPK = Array();
         
+        $manyToManyRelationValues = Array();
+        
         // Here we will store the links to the unique rows for quick lookup in this extraction step
         $uniqueRowsByPK = Array();
         foreach ($result_array as $row)
@@ -1305,6 +1307,15 @@ class Hydrate
                     $lookup = $uniqueRow;
                     unset($lookup);
                 }
+                
+                // Also, always save new values of many-to-many relationship fields
+                foreach ($t["relations"] as $rel)
+                {
+                    $relSchema = $schema[$t["tableName"]]["relations"][$rel["name"]];
+                    $relationUsesMap = Hydrate_schema::isManyToMany($relSchema);
+                    if ($relationUsesMap)
+                        $manyToManyRelationValues[$t['prefix']][$row["{$t['prefix']}_{$PKf}"]][$rel["prefix"]][] = $row["{$rel["refTablePrefix"]}_{$relSchema["foreign"]}"];
+                }
             }
         }
         
@@ -1318,13 +1329,13 @@ class Hydrate
                     foreach ($t["relations"] as $rel)
                     {
                         $relSchema = $schema[$t["tableName"]]["relations"][$rel["name"]];
-                        $manyToMany = Hydrate_schema::isManyToMany($relSchema);
+                        $relationUsesMap = Hydrate_schema::isManyToMany($relSchema);
                         foreach ($uniqueRowsWithPK[$rel['prefix']] as &$foreignUnqRow)
                         {
                             $doHydrate = FALSE;
-                            if ($manyToMany)
+                            if ($relationUsesMap)
                             {
-                                if ($unqRow["row"][$t["table"]["primary"][0]] == $foreignUnqRow["rawRow"]["{$rel["refTablePrefix"]}_{$relSchema["local"]}"])
+                                if (in_array($foreignUnqRow["rawRow"]["{$rel["refTablePrefix"]}_{$relSchema["foreign"]}"], $manyToManyRelationValues[$t['prefix']][$unqRow["row"][$t["table"]["primary"][0]]][$rel["prefix"]]))
                                     $doHydrate = TRUE;
                             }
                             else

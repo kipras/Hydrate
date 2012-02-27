@@ -250,6 +250,18 @@ class TestEnvironment extends TestEnvironmentBase
                         "track_objects" => "0",
                         "has_daily_budget" => "0",
                     ),
+                    
+                    Array(
+                        "__name" => "client1_company1_campaign2",
+                        "company_id"    => "[companies.client1_company1]",
+                        "created" => $created,
+                        "approved_datetime" => NULL,
+                        "name" => "Test kliento 1 test kompanijos 1 test reklaminė kampanija 2",
+                        "status" => "1",
+                        "daily_budget_limit" => "0",
+                        "track_objects" => "0",
+                        "has_daily_budget" => "0",
+                    ),
                 ),
                 "campaigns_objects_map" => Array(
                     Array(
@@ -263,6 +275,14 @@ class TestEnvironment extends TestEnvironmentBase
                         "__name" => "campaign1_object2",
                         "campaigns_id" => "[campaigns.client1_company1_campaign1]",
                         "adresatai_id" => "[adresatai.object2]",
+                        "status" => "1",
+                        "show_time" => "1",
+                    ),
+                    
+                    Array(
+                        "__name" => "campaign2_object2",
+                        "campaigns_id" => "[campaigns.client1_company1_campaign2]",
+                        "adresatai_id" => "[adresatai.object1]",
                         "status" => "1",
                         "show_time" => "1",
                     ),

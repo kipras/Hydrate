@@ -2,7 +2,7 @@
 
 require_once dirname(__FILE__) . '/../../../json/json_1_1/json/json.php';
 
-require_once(dirname(__FILE__) . '/2.x.version_to_test.php');
+require_once(dirname(__FILE__) . '/1_2.version_to_test.php');
 
 
 require_once(dirname(__FILE__) . '/simpletest/autorun.php');
@@ -21,4 +21,4 @@ $env->before();
 
 
 // Load test units
-loadTest("2.x");
+loadTest("base");

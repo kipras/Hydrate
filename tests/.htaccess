@@ -1,6 +1,6 @@
 RewriteEngine on
 
-RewriteRule 2 2.php [L]
+# RewriteRule 2 2.php [L]
 
 # If not file and directory
 RewriteCond %{SCRIPT_FILENAME} !-f

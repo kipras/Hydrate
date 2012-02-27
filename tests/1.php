@@ -21,4 +21,5 @@ $env->before();
 
 
 // Load test units
+loadTest("base");
 loadTest("1.x");

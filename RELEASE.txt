@@ -1,3 +1,4 @@
+1.15  - Fixed regression introduced in 1.14 for many-to-many relations fetching
 1.14  - MAJOR performance improvements (for both large result sets and complex hydration hierarchies).
 1.13  - Small performance improvements
 1.12  - Fixed another regression introduced by 1.10, this time it included custom field support
@@ -18,11 +19,13 @@
             only putting a pointer to the current schema file there. Putting a pointer also works.
 
 
+
+1.2.8 - Same as 1.15 (Fixed regression introduced in 1.14 for many-to-many relations fetching), but for 1.2.x branch
 1.2.7 - Support for using a mapped relation for type "one". Used for some backwards compatibility.
             But in general you should not need this functionality.
 1.2.6 - Support for loading schema file from a custom folder
-1.2.5 - Same as 1.14 (MAJOR performance improvements), but for 1.2 branch
-1.2.4 - Same as 1.13 (Small performance improvements), but for 1.2 branch
+1.2.5 - Same as 1.14 (MAJOR performance improvements), but for 1.2.x branch
+1.2.4 - Same as 1.13 (Small performance improvements), but for 1.2.x branch
 1.2.3 - Hydration profiling
 1.2.2 - Fixed an error on MS SQL, which would come up, when there is limit() and more than one order_by()
 1.2.1 - Allows to pass Hydrate->where() raw SQL queries in parentheses, i.e. Hydrate->where("(x AND y)")
