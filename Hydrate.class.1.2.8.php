@@ -9,8 +9,8 @@ class Hydrate_error
         $CI->db->_reset_select();
         
         $error =& load_class('Exceptions');
-		echo $error->show_error("{$method}() error:", $message . "<br /><br />Stack trace:<br />" . trace(TRUE, TRUE), 'error_db');
-		exit;
+        echo $error->show_error("{$method}() error:", $message . "<br /><br />Stack trace:<br />" . trace(TRUE, TRUE), 'error_db');
+        exit;
     }
 }
 

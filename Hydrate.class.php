@@ -19,18 +19,18 @@ class Hydrate_error
             Hydrate::$db->_reset_select();
         
         self::set_status_header(500);
-		
-		$heading = "{$method}() error:";
+
+        $heading = "{$method}() error:";
         $message = '<p>'.$message.'</p>';
 
-		if (ob_get_level() > self::$ob_level + 1)
-		{
-			ob_end_flush();	
-		}
-		ob_start();
-		
-        
-        
+        if (ob_get_level() > self::$ob_level + 1)
+        {
+            ob_end_flush();
+        }
+        ob_start();
+
+
+
         echo 
 '<html>
 <head>
@@ -38,37 +38,37 @@ class Hydrate_error
 <style type="text/css">
 
 body {
-background-color:	#fff;
-margin:				40px;
-font-family:		Lucida Grande, Verdana, Sans-serif;
-font-size:			12px;
-color:				#000;
+background-color:   #fff;
+margin:             40px;
+font-family:        Lucida Grande, Verdana, Sans-serif;
+font-size:          12px;
+color:              #000;
 }
 
 #content  {
-border:				#999 1px solid;
-background-color:	#fff;
-padding:			20px 20px 12px 20px;
+border:             #999 1px solid;
+background-color:   #fff;
+padding:            20px 20px 12px 20px;
 }
 
 h1 {
-font-weight:		normal;
-font-size:			14px;
-color:				#990000;
-margin: 			0 0 4px 0;
+font-weight:        normal;
+font-size:          14px;
+color:              #990000;
+margin:             0 0 4px 0;
 }
 </style>
 </head>
 <body>
-	<div id="content">
-		<h1>' . $heading . '</h1>
-		' . $message . '
-	</div>
+    <div id="content">
+        <h1>' . $heading . '</h1>
+        ' . $message . '
+    </div>
 </body>
 </html>';
         
-		$buffer = ob_get_contents();
-		ob_end_clean();
+        $buffer = ob_get_contents();
+        ob_end_clean();
         
         echo $buffer; 
         exit;
@@ -77,53 +77,53 @@ margin: 			0 0 4px 0;
     /**
      * Set HTTP Status Header
      *
-     * @access	public
-     * @param	int 	the status code
-     * @param	string	
-     * @return	void
+     * @access  public
+     * @param   int     the status code
+     * @param   string
+     * @return  void
      */
     static function set_status_header($code = 200, $text = '')
     {
         $stati = array(
-                            200	=> 'OK',
-                            201	=> 'Created',
-                            202	=> 'Accepted',
-                            203	=> 'Non-Authoritative Information',
-                            204	=> 'No Content',
-                            205	=> 'Reset Content',
-                            206	=> 'Partial Content',
+                            200 => 'OK',
+                            201 => 'Created',
+                            202 => 'Accepted',
+                            203 => 'Non-Authoritative Information',
+                            204 => 'No Content',
+                            205 => 'Reset Content',
+                            206 => 'Partial Content',
 
-                            300	=> 'Multiple Choices',
-                            301	=> 'Moved Permanently',
-                            302	=> 'Found',
-                            304	=> 'Not Modified',
-                            305	=> 'Use Proxy',
-                            307	=> 'Temporary Redirect',
+                            300 => 'Multiple Choices',
+                            301 => 'Moved Permanently',
+                            302 => 'Found',
+                            304 => 'Not Modified',
+                            305 => 'Use Proxy',
+                            307 => 'Temporary Redirect',
 
-                            400	=> 'Bad Request',
-                            401	=> 'Unauthorized',
-                            403	=> 'Forbidden',
-                            404	=> 'Not Found',
-                            405	=> 'Method Not Allowed',
-                            406	=> 'Not Acceptable',
-                            407	=> 'Proxy Authentication Required',
-                            408	=> 'Request Timeout',
-                            409	=> 'Conflict',
-                            410	=> 'Gone',
-                            411	=> 'Length Required',
-                            412	=> 'Precondition Failed',
-                            413	=> 'Request Entity Too Large',
-                            414	=> 'Request-URI Too Long',
-                            415	=> 'Unsupported Media Type',
-                            416	=> 'Requested Range Not Satisfiable',
-                            417	=> 'Expectation Failed',
+                            400 => 'Bad Request',
+                            401 => 'Unauthorized',
+                            403 => 'Forbidden',
+                            404 => 'Not Found',
+                            405 => 'Method Not Allowed',
+                            406 => 'Not Acceptable',
+                            407 => 'Proxy Authentication Required',
+                            408 => 'Request Timeout',
+                            409 => 'Conflict',
+                            410 => 'Gone',
+                            411 => 'Length Required',
+                            412 => 'Precondition Failed',
+                            413 => 'Request Entity Too Large',
+                            414 => 'Request-URI Too Long',
+                            415 => 'Unsupported Media Type',
+                            416 => 'Requested Range Not Satisfiable',
+                            417 => 'Expectation Failed',
 
-                            500	=> 'Internal Server Error',
-                            501	=> 'Not Implemented',
-                            502	=> 'Bad Gateway',
-                            503	=> 'Service Unavailable',
-                            504	=> 'Gateway Timeout',
-                            505	=> 'HTTP Version Not Supported'
+                            500 => 'Internal Server Error',
+                            501 => 'Not Implemented',
+                            502 => 'Bad Gateway',
+                            503 => 'Service Unavailable',
+                            504 => 'Gateway Timeout',
+                            505 => 'HTTP Version Not Supported'
                         );
 
         if ($code == '' OR ! is_numeric($code))
@@ -132,7 +132,7 @@ margin: 			0 0 4px 0;
         }
 
         if (isset($stati[$code]) AND $text == '')
-        {				
+        {
             $text = $stati[$code];
         }
         
